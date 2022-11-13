@@ -47,7 +47,7 @@ public class ElevatorArmTest extends LinearOpMode {
                 elevatorArm.setTargetLevel(ElevatorArmSubsystem.Levels.L3);
             }
 
-            
+            elevatorArm.periodic();
         }
     }
 }
