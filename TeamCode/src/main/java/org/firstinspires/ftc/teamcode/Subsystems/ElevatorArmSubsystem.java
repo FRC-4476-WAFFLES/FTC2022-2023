@@ -17,7 +17,9 @@ public class ElevatorArmSubsystem extends SubsystemBase {
     private final double elevatorMotorRunPower = 0.6;
     private final double armMotorRunPower = 0;
 
-    public Levels targetLevel;
+    private Levels targetLevel;
+    private int targetElevatorPosition;
+    private int targetArmPosition;
 
     public final Hashtable<Levels, Integer> elevatorLevels;
     public final Hashtable<Levels, Integer> armLevels;
@@ -40,6 +42,8 @@ public class ElevatorArmSubsystem extends SubsystemBase {
         this.armLevels.put(Levels.L3, 0);
 
         this.targetLevel = null;
+        this.targetElevatorPosition = 0;
+        this.targetArmPosition = 0;
     }
 
     public void initialize() {
@@ -63,44 +67,72 @@ public class ElevatorArmSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        if (this.targetLevel != null) {
-            int elevatorTarget = this.elevatorLevels.get(targetLevel);
-            int armTarget = this.armLevels.get(targetLevel);
+        this.leftElevatorMotor.setTargetPosition(this.targetElevatorPosition);
+        this.rightElevatorMotor.setTargetPosition(this.targetElevatorPosition);
+        this.armMotor.setTargetPosition(this.targetArmPosition);
 
-            boolean leftElevatorCheck = this.leftElevatorMotor.atTargetPosition()
-                    || this.leftElevatorMotor.getCurrentPosition() > elevatorTarget;
-            if (!leftElevatorCheck) {
-                this.leftElevatorMotor.set(this.elevatorMotorRunPower);
-            } else {
-                this.leftElevatorMotor.set(0);
-            }
+        this.leftElevatorMotor.set(
+                shouldLeftElevatorMotorRun() ?
+                        this.elevatorMotorRunPower : 0
+        );
 
-            boolean rightElevatorCheck = this.rightElevatorMotor.atTargetPosition()
-                    || this.rightElevatorMotor.getCurrentPosition() > elevatorTarget;
-            if (!rightElevatorCheck) {
-                this.rightElevatorMotor.set(this.elevatorMotorRunPower);
-            } else {
-                this.leftElevatorMotor.set(0);
-            }
+        this.rightElevatorMotor.set(
+                shouldRightElevatorMotorRun() ?
+                        this.elevatorMotorRunPower : 0
+        );
 
-            boolean armCheck = this.armMotor.atTargetPosition()
-                    || this.armMotor.getCurrentPosition() > armTarget;
-            if (!armCheck) {
-                this.armMotor.set(this.armMotorRunPower);
-            } else {
-                this.armMotor.set(0);
-            }
+        this.armMotor.set(
+                shouldArmMotorRun() ?
+                        this.armMotorRunPower : 0
+        );
 
-            return;
-        }
+    }
 
-        this.leftElevatorMotor.set(0);
-        this.rightElevatorMotor.set(0);
-        this.armMotor.set(0);
+    public void moveElevatorTargetPosition(int amountToMove) {
+        this.targetElevatorPosition += amountToMove;
+    }
+
+    public void setElevatorTargetPosition(int position) {
+        this.targetElevatorPosition = position;
+    }
+
+    public void moveArmTargetPosition(int amountToMove) {
+        this.targetArmPosition += amountToMove;
+    }
+
+    public void setArmTargetPosition(int position) {
+        this.targetArmPosition = position;
     }
 
     public void setTargetLevel(Levels targetLevel) {
         this.targetLevel = targetLevel;
+        this.setElevatorTargetPosition(this.elevatorLevels.get(this.targetLevel));
+        this.setArmTargetPosition(this.armLevels.get(this.targetLevel));
+    }
+
+    private boolean shouldLeftElevatorMotorRun() {
+        return !this.leftElevatorMotor.atTargetPosition()
+                || this.leftElevatorMotor.getCurrentPosition() < this.targetElevatorPosition;
+    }
+
+    private boolean shouldRightElevatorMotorRun() {
+        return !this.rightElevatorMotor.atTargetPosition()
+                || this.rightElevatorMotor.getCurrentPosition() < this.targetElevatorPosition;
+    }
+
+    private boolean shouldArmMotorRun() {
+        return !this.armMotor.atTargetPosition()
+                || this.armMotor.getCurrentPosition() < this.targetArmPosition;
+    }
+
+    public void stop() {
+        this.leftElevatorMotor.setTargetPosition(this.leftElevatorMotor.getCurrentPosition());
+        this.rightElevatorMotor.setTargetPosition(this.rightElevatorMotor.getCurrentPosition());
+        this.armMotor.setTargetPosition(this.armMotor.getCurrentPosition());
+
+        this.leftElevatorMotor.set(0);
+        this.rightElevatorMotor.set(0);
+        this.armMotor.set(0);
     }
 
     public enum Levels {
