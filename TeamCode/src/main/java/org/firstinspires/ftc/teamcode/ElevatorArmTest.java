@@ -21,9 +21,9 @@ public class ElevatorArmTest extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        leftElevatorMotor = new MotorEx(hardwareMap, "leftElevatorMotor");
-        rightElevatorMotor = new MotorEx(hardwareMap, "rightElevatorMotor");
-        armMotor = new MotorEx(hardwareMap, "armMotor");
+        leftElevatorMotor = new MotorEx(hardwareMap, "leftElevator");
+        rightElevatorMotor = new MotorEx(hardwareMap, "rightElevator");
+        armMotor = new MotorEx(hardwareMap, "arm");
 
         controller = new GamepadEx(gamepad1);
 
