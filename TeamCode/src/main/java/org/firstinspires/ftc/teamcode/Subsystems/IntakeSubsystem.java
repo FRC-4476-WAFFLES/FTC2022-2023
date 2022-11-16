@@ -7,26 +7,33 @@ import java.util.Hashtable;
 
 public class IntakeSubsystem extends SubsystemBase {
     private MotorEx intakeMotor;
-    private Hashtable<Modes, Double> modes;
+    private Modes intakeMode;
 
     public IntakeSubsystem(MotorEx intakeMotor) {
         this.intakeMotor = intakeMotor;
-        this.modes = new Hashtable<>();
-        this.modes.put(Modes.PASSIVE, 0.5);
-        this.modes.put(Modes.INTAKE, 1.0);
-        this.modes.put(Modes.OUTTAKE, -1.0);
-        this.modes.put(Modes.OFF, 0.0);
+        this.intakeMode = Modes.OFF;
     }
 
     public enum Modes {
-        PASSIVE,
-        INTAKE,
-        OUTTAKE,
-        OFF
+        PASSIVE(0.5),
+        INTAKE(1.0),
+        OUTTAKE(-1.0),
+        OFF(0.0);
+
+        private final double power;
+
+        Modes(double power) {
+            this.power = power;
+        }
+
+        public double getPower() {
+            return this.power;
+        }
     }
 
     public void operate(Modes intakeMode) {
-        this.intakeMotor.set(this.modes.get(intakeMode));
+        this.intakeMode = intakeMode;
+        this.intakeMotor.set(this.intakeMode.getPower());
     }
 
     public void stop() {
