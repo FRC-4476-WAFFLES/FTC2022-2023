@@ -1,4 +1,4 @@
-package lib.trajectory;
+package lib.autoNavigation.trajectory;
 
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
@@ -12,7 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
 
-import lib.spline.PoseWithCurvatureAndRotation;
+import lib.autoNavigation.spline.PoseWithCurvatureAndRotation;
 
 public class OmniTrajectoryGenerator {
     private static final OmniTrajectory kDoNothingTrajectory =

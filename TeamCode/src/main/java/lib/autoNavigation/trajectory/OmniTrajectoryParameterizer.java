@@ -1,4 +1,4 @@
-package lib.trajectory;
+package lib.autoNavigation.trajectory;
 
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
@@ -6,8 +6,8 @@ import com.arcrobotics.ftclib.geometry.Rotation2d;
 import java.util.ArrayList;
 import java.util.List;
 
-import lib.spline.PoseWithCurvatureAndRotation;
-import lib.trajectory.constraint.OmniTrajectoryConstraint;
+import lib.autoNavigation.trajectory.constraint.OmniTrajectoryConstraint;
+import lib.autoNavigation.spline.PoseWithCurvatureAndRotation;
 
 public final class OmniTrajectoryParameterizer {
     /**

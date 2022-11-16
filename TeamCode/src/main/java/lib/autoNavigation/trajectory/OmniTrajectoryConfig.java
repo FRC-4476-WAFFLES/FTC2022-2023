@@ -1,4 +1,4 @@
-package lib.trajectory;
+package lib.autoNavigation.trajectory;
 
 
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.MecanumDriveKinematics;
@@ -6,8 +6,8 @@ import com.arcrobotics.ftclib.kinematics.wpilibkinematics.MecanumDriveKinematics
 import java.util.ArrayList;
 import java.util.List;
 
-import lib.trajectory.constraint.OmniMecanumDriveKinematicsConstraint;
-import lib.trajectory.constraint.OmniTrajectoryConstraint;
+import lib.autoNavigation.trajectory.constraint.OmniMecanumDriveKinematicsConstraint;
+import lib.autoNavigation.trajectory.constraint.OmniTrajectoryConstraint;
 
 /**
  * Represents the configuration for generating a trajectory. This class stores the start velocity,

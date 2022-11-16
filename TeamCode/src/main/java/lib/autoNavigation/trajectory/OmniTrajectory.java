@@ -1,4 +1,4 @@
-package lib.trajectory;
+package lib.autoNavigation.trajectory;
 
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import lib.math.MathUtil;
+import lib.autoNavigation.math.MathUtil;
 
 public class OmniTrajectory {
     private final double m_totalTimeSeconds;

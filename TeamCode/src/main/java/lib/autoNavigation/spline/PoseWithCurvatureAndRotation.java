@@ -1,4 +1,4 @@
-package lib.spline;
+package lib.autoNavigation.spline;
 
 
 import com.arcrobotics.ftclib.spline.PoseWithCurvature;

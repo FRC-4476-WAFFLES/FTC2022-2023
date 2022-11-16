@@ -1,4 +1,4 @@
-package lib.trajectory;
+package lib.autoNavigation.trajectory;
 
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
