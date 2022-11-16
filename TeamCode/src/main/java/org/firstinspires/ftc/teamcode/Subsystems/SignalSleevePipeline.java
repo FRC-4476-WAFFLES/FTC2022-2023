@@ -26,7 +26,7 @@ public class SignalSleevePipeline extends OpenCvPipeline {
 
     @Override
     public Mat processFrame(Mat frame) {
-
+        // Find parking location
 
         return frame;
     }
