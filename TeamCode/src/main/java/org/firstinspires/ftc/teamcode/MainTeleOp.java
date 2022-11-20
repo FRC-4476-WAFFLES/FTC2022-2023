@@ -2,7 +2,9 @@ package org.firstinspires.ftc.teamcode;
 
 import android.graphics.Camera;
 
+import com.arcrobotics.ftclib.drivebase.MecanumDrive;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
+import com.arcrobotics.ftclib.gamepad.GamepadKeys;
 import com.arcrobotics.ftclib.hardware.GyroEx;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.arcrobotics.ftclib.hardware.motors.MotorEx;
@@ -30,6 +32,8 @@ public class MainTeleOp extends LinearOpMode {
 
     private GamepadEx driverController;
     private GamepadEx operatorController;
+
+    private MecanumDrive drive;
 
     private ElevatorArmSubsystem elevatorArm;
     private IntakeSubsystem intake;
@@ -59,10 +63,6 @@ public class MainTeleOp extends LinearOpMode {
         this.intake = new IntakeSubsystem(
                 intakeMotor
         );
-        this.camera = new CameraSubsystem(
-                hardwareMap,
-                telemetry
-        );
 
         this.frontLeftMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         this.frontRightMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
@@ -78,10 +78,45 @@ public class MainTeleOp extends LinearOpMode {
 
         this.gyro.init();
 
+        this.drive = new MecanumDrive(frontLeftMotor, frontRightMotor, backLeftMotor, backRightMotor);
+        this.elevatorArm.initialize();
+
         waitForStart();
 
         while (opModeIsActive()) {
+            if (
+                    this.driverController.getButton(GamepadKeys.Button.START)
+                    && this.driverController.getButton(GamepadKeys.Button.BACK)
+            ) {
+                this.gyro.reset();
+            }
 
+            if (this.operatorController.getButton(GamepadKeys.Button.A)) {
+                this.elevatorArm.setTargetLevel(ElevatorArmSubsystem.Levels.GROUNDED);
+            } else if (this.operatorController.getButton(GamepadKeys.Button.B)) {
+                this.elevatorArm.setTargetLevel(ElevatorArmSubsystem.Levels.L1);
+            } else if (this.operatorController.getButton(GamepadKeys.Button.X)) {
+                this.elevatorArm.setTargetLevel(ElevatorArmSubsystem.Levels.L2);
+            } else if (this.operatorController.getButton(GamepadKeys.Button.Y)) {
+                this.elevatorArm.setTargetLevel(ElevatorArmSubsystem.Levels.L3);
+            }
+
+            double elevatorJoystickValue = this.operatorController.getRightY();
+            double armJoystickValue = this.operatorController.getLeftY();
+
+            this.elevatorArm.moveElevatorWithAnalogStick(elevatorJoystickValue);
+            this.elevatorArm.moveArmWithAnalogStick(armJoystickValue);
+
+            this.drive.driveFieldCentric(
+                    this.driverController.getLeftX(),
+                    this.driverController.getLeftY(),
+                    this.driverController.getRightX(),
+                    this.gyro.getHeading()
+            );
+
+            this.elevatorArm.periodic();
+
+            telemetry.update();
         }
     }
 
