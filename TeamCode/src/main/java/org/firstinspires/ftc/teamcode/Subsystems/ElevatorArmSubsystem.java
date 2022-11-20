@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.Subsystems;
 import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.arcrobotics.ftclib.hardware.motors.MotorEx;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import java.util.Hashtable;
 
@@ -14,6 +15,10 @@ public class ElevatorArmSubsystem extends SubsystemBase {
     private final double TICKS_PER_ROTATION = 1440;
     private final double MM_PER_TICK = (-30 * Math.PI) / (TICKS_PER_ROTATION);
 
+    // Max ticks per second for analog stick control
+    private final double ELEVATOR_MAX_TICKS_PER_SECOND = 20;
+    private final double ARM_MAX_TICKS_PER_SECOND = 20;
+
     private final double elevatorMotorRunPower = 0.6;
     private final double armMotorRunPower = 0;
 
@@ -23,6 +28,10 @@ public class ElevatorArmSubsystem extends SubsystemBase {
 
     public final Hashtable<Levels, Integer> elevatorLevels;
     public final Hashtable<Levels, Integer> armLevels;
+
+    private final ElapsedTime elapsedTime;
+    private double previousTime = 0;
+    private double previousLoopTime = 0;
 
     public ElevatorArmSubsystem(MotorEx leftElevatorMotor, MotorEx rightElevatorMotor, MotorEx armMotor) {
         this.leftElevatorMotor = leftElevatorMotor;
@@ -44,6 +53,8 @@ public class ElevatorArmSubsystem extends SubsystemBase {
         this.targetLevel = null;
         this.targetElevatorPosition = 0;
         this.targetArmPosition = 0;
+
+        this.elapsedTime = new ElapsedTime();
     }
 
     public void initialize() {
@@ -67,6 +78,9 @@ public class ElevatorArmSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
+        this.previousLoopTime = this.elapsedTime.seconds() - this.previousTime;
+        this.previousTime = this.elapsedTime.seconds();
+
         this.leftElevatorMotor.setTargetPosition(this.targetElevatorPosition);
         this.rightElevatorMotor.setTargetPosition(this.targetElevatorPosition);
         this.armMotor.setTargetPosition(this.targetArmPosition);
@@ -102,6 +116,18 @@ public class ElevatorArmSubsystem extends SubsystemBase {
 
     public void setArmTargetPosition(int position) {
         this.targetArmPosition = position;
+    }
+
+    public void moveElevatorWithAnalogStick(double analogStickValue) {
+        this.moveElevatorTargetPosition(
+                (int) Math.round(analogStickValue * this.previousLoopTime * this.ELEVATOR_MAX_TICKS_PER_SECOND)
+        );
+    }
+
+    public void moveArmWithAnalogStick(double analogStickValue) {
+        this.moveArmTargetPosition(
+                (int) Math.round(analogStickValue * this.previousLoopTime * this.ARM_MAX_TICKS_PER_SECOND)
+        );
     }
 
     public void setTargetLevel(Levels targetLevel) {
