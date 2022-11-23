@@ -3,7 +3,10 @@ package org.firstinspires.ftc.teamcode.Subsystems;
 import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.arcrobotics.ftclib.hardware.motors.MotorEx;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.Hashtable;
 
@@ -33,10 +36,27 @@ public class ElevatorArmSubsystem extends SubsystemBase {
     private double previousTime = 0;
     private double previousLoopTime = 0;
 
-    public ElevatorArmSubsystem(MotorEx leftElevatorMotor, MotorEx rightElevatorMotor, MotorEx armMotor) {
-        this.leftElevatorMotor = leftElevatorMotor;
-        this.rightElevatorMotor = rightElevatorMotor;
-        this.armMotor = armMotor;
+    public ElevatorArmSubsystem(HardwareMap hardwareMap, Telemetry telemetry) {
+        this.leftElevatorMotor = new MotorEx(hardwareMap, "leftElevator");
+        this.rightElevatorMotor = new MotorEx(hardwareMap, "rightElevator");
+        this.armMotor = new MotorEx(hardwareMap, "arm");
+
+        this.leftElevatorMotor.setRunMode(Motor.RunMode.PositionControl);
+        this.rightElevatorMotor.setRunMode(Motor.RunMode.PositionControl);
+        this.armMotor.setRunMode(Motor.RunMode.PositionControl);
+
+        this.leftElevatorMotor.resetEncoder();
+        this.rightElevatorMotor.resetEncoder();
+        this.armMotor.resetEncoder();
+
+        // set the tolerance
+        this.leftElevatorMotor.setPositionTolerance(15);
+        this.rightElevatorMotor.setPositionTolerance(15);
+        this.armMotor.setPositionTolerance(15);
+
+        this.leftElevatorMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
+        this.rightElevatorMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
+        this.armMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
 
         this.elevatorLevels = new Hashtable<>();
         this.elevatorLevels.put(Levels.GROUNDED, 0);
@@ -55,25 +75,6 @@ public class ElevatorArmSubsystem extends SubsystemBase {
         this.targetArmPosition = 0;
 
         this.elapsedTime = new ElapsedTime();
-    }
-
-    public void initialize() {
-        this.leftElevatorMotor.setRunMode(Motor.RunMode.PositionControl);
-        this.rightElevatorMotor.setRunMode(Motor.RunMode.PositionControl);
-        this.armMotor.setRunMode(Motor.RunMode.PositionControl);
-
-        this.leftElevatorMotor.resetEncoder();
-        this.rightElevatorMotor.resetEncoder();
-        this.armMotor.resetEncoder();
-
-        // set the tolerance
-        this.leftElevatorMotor.setPositionTolerance(15);
-        this.rightElevatorMotor.setPositionTolerance(15);
-        this.armMotor.setPositionTolerance(15);
-
-        this.leftElevatorMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
-        this.rightElevatorMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
-        this.armMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
     }
 
     @Override

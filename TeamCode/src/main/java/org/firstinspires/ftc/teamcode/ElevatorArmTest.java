@@ -28,12 +28,9 @@ public class ElevatorArmTest extends LinearOpMode {
         controller = new GamepadEx(gamepad1);
 
         elevatorArm = new ElevatorArmSubsystem(
-                leftElevatorMotor,
-                rightElevatorMotor,
-                armMotor
+                hardwareMap,
+                telemetry
         );
-
-        elevatorArm.initialize();
 
         waitForStart();
         while (opModeIsActive()) {
