@@ -1,16 +1,19 @@
 package org.firstinspires.ftc.teamcode.Subsystems;
 
 import com.arcrobotics.ftclib.command.SubsystemBase;
+import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.arcrobotics.ftclib.hardware.motors.MotorEx;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import java.util.Hashtable;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public class IntakeSubsystem extends SubsystemBase {
     private MotorEx intakeMotor;
     private Modes intakeMode;
 
-    public IntakeSubsystem(MotorEx intakeMotor) {
-        this.intakeMotor = intakeMotor;
+    public IntakeSubsystem(HardwareMap hardwareMap, Telemetry telemetry) {
+        this.intakeMotor = new MotorEx(hardwareMap, "intake");
+        this.intakeMotor.setRunMode(Motor.RunMode.RawPower);
         this.intakeMode = Modes.OFF;
     }
 

@@ -3,20 +3,31 @@ package org.firstinspires.ftc.teamcode.Subsystems;
 import androidx.annotation.NonNull;
 
 import com.arcrobotics.ftclib.command.SubsystemBase;
+import com.arcrobotics.ftclib.controller.PIDController;
+import com.arcrobotics.ftclib.controller.wpilibcontroller.ProfiledPIDController;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.geometry.Translation2d;
 import com.arcrobotics.ftclib.hardware.GyroEx;
+import com.arcrobotics.ftclib.hardware.RevIMU;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.arcrobotics.ftclib.hardware.motors.MotorEx;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.ChassisSpeeds;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.MecanumDriveKinematics;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.MecanumDriveOdometry;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.MecanumDriveWheelSpeeds;
+import com.arcrobotics.ftclib.trajectory.TrapezoidProfile;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+
+import lib.autoNavigation.controller.HolonomicDriveController;
+import lib.autoNavigation.trajectory.OmniTrajectory;
 
 public class DriveSubsystem extends SubsystemBase {
     private final ElapsedTime runtime = new ElapsedTime();
+    private final ElapsedTime pathTime = new ElapsedTime();
 
     // Create the variables to hold the four motor objects
     private final MotorEx frontLeftMotor;
@@ -26,51 +37,47 @@ public class DriveSubsystem extends SubsystemBase {
 
     private final GyroEx gyro;
 
-    private final double CPR = 2150.8; // Encoder ticks per wheel rotation
     private final double WHEEL_DIAMETER = 101.6; // Wheel diameter in millimeters
-    private final double MM_PER_TICK = (WHEEL_DIAMETER * 3.141592 / CPR) * 2; // Wheel distance traveled per encoder tick in millimeters
-    private final double METERS_TO_TICKS = (1 / MM_PER_TICK) * 1000; // Convert meters per second to ticks per second
 
-    // Create the objects needed for odometry and kinematics
+    private final double COUNTS_TO_MM = (WHEEL_DIAMETER * Math.PI) / Motor.GoBILDA.RPM_312.getCPR();
+    private final double METERS_TO_COUNTS = (1 / COUNTS_TO_MM) * 1000; // Convert meters per second to ticks per second
+    private final double MAX_SPEED_M_PER_S = Motor.GoBILDA.RPM_312.getAchievableMaxTicksPerSecond() * COUNTS_TO_MM;
+
+    private final double MAX_ACCEL_M_PER_S_SQ = 1.0; //TODO: Set this number to be accurate;
+
     private MecanumDriveKinematics kinematics;
     private Rotation2d gyroAngle;
-    private ChassisSpeeds chassisSpeeds;
-    private MecanumDriveWheelSpeeds wheelSpeeds;
-    private MecanumDriveOdometry odometry;
+    private final MecanumDriveOdometry odometry;
 
-    // private NavigationWaypoint currentWaypoint;
-    private boolean isActive = false;
+    private final Telemetry telemetry;
 
-    private double hStart;
+    private final HolonomicDriveController driveController;
 
-    // Set the default maximum chassis speeds in meters per second
-    private double vMax = 1;
-    private double hMax = 1;
+    private OmniTrajectory trajectory;
 
-    // Set the default navigation tolerances in meters and radians
-    private double pxTol = 0.05;
-    private double pyTol = 0.05;
-    private double phTol = 0.05;
+    public DriveSubsystem(HardwareMap hardwareMap, Telemetry telemetry) {
+        this.frontLeftMotor = new MotorEx(hardwareMap, "FL", Motor.GoBILDA.RPM_312);
+        this.frontRightMotor = new MotorEx(hardwareMap, "FR", Motor.GoBILDA.RPM_312);
+        this.backLeftMotor = new MotorEx(hardwareMap, "BL", Motor.GoBILDA.RPM_312);
+        this.backRightMotor = new MotorEx(hardwareMap, "BR", Motor.GoBILDA.RPM_312);
+        this.gyro = new RevIMU(hardwareMap);
 
-    public DriveSubsystem(MotorEx frontLeftMotor, MotorEx frontRightMotor, MotorEx backLeftMotor, MotorEx backRightMotor, GyroEx gyro){
-        this.frontLeftMotor = frontLeftMotor;
-        this.frontRightMotor = frontRightMotor;
-        this.backLeftMotor = backLeftMotor;
-        this.backRightMotor = backRightMotor;
-        this.gyro = gyro;
-    }
+        this.telemetry = telemetry;
 
-    /**
-     * Initialize the subsystem
-     * Units are meters and degrees
-     *
-     * @param xStart X location on field at start
-     * @param yStart Y location on field at start
-     * @param hStart Robot heading on field at start
-     */
+        //TODO: Set and tune PID coefficients to be good
+        PIDController xController = new PIDController(-7.1, 0.0, -0.2);
+        PIDController yController = new PIDController(7.1, 0.0, 0.2);
+        ProfiledPIDController thetaController = new ProfiledPIDController(-6.0, 0.0, 0.0,
+                new TrapezoidProfile.Constraints(
+                        MAX_SPEED_M_PER_S,
+                        MAX_ACCEL_M_PER_S_SQ));
 
-    public void initialize(double xStart, double yStart, double hStart){
-        this.hStart = hStart;
+        this.driveController = new HolonomicDriveController(
+                xController,
+                yController,
+                thetaController
+        );
+
         // Set motors to run at a specified velocity
         frontLeftMotor.setRunMode(Motor.RunMode.VelocityControl);
         frontRightMotor.setRunMode(Motor.RunMode.VelocityControl);
@@ -94,234 +101,115 @@ public class DriveSubsystem extends SubsystemBase {
         backRightMotor.resetEncoder();
 
         // Set how far the wheels move in millimeters per encoder tick
-        frontLeftMotor.setDistancePerPulse(MM_PER_TICK);
-        frontRightMotor.setDistancePerPulse(MM_PER_TICK);
-        backLeftMotor.setDistancePerPulse(MM_PER_TICK);
-        backRightMotor.setDistancePerPulse(MM_PER_TICK);
+        frontLeftMotor.setDistancePerPulse(COUNTS_TO_MM);
+        frontRightMotor.setDistancePerPulse(COUNTS_TO_MM);
+        backLeftMotor.setDistancePerPulse(COUNTS_TO_MM);
+        backRightMotor.setDistancePerPulse(COUNTS_TO_MM);
 
         gyro.init();
 
         // Setup the odometry system
         // Set the locations of the wheels on the robot
+        // TODO: Update wheel locations to match this year's chassis
         Translation2d frontLeftLocation = new Translation2d(0.167,0.195);
         Translation2d frontRightLocation = new Translation2d(0.167,-0.195);
         Translation2d backLeftLocation = new Translation2d(-0.167,0.195);
         Translation2d backRightLocation = new Translation2d(-0.167,-0.195);
+
         // Create a mecanum kinematics object from the wheel locations
         kinematics = new MecanumDriveKinematics(frontLeftLocation, frontRightLocation, backLeftLocation, backRightLocation);
         // Create an object to hold the angle of the robot as reported by the IMU
         gyroAngle = gyro.getRotation2d();
-        // Create a chassis speeds object relative to the field - format is (desired speed relative to one wall, desired speed relative to second wall, desired rotation speed in radians, current angle)
-        chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(0,0,0, gyroAngle);
-        // Get wheel speeds from the chassis speed
-        wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
         // Create an odometry object - format is (kinematics object, gyro heading, start position on field)
-        odometry = new MecanumDriveOdometry(kinematics, gyroAngle, new Pose2d(xStart, yStart, new Rotation2d(hStart)));
+        odometry = new MecanumDriveOdometry(kinematics, gyroAngle, new Pose2d(0, 0, new Rotation2d(0)));
     }
 
-    public void periodic(){
-    }
-
-    /**
-     * Set the maximum speed of the robot.
-     * @param translate The max speed of the robot, in meters per second
-     */
-
-    public void setMaxVelocity(double translate, double rotate){
-        vMax = translate;
-        hMax = rotate;
-    }
-
-    public void setTolerance(double tolerance){
-        pxTol = tolerance;
-        pyTol = tolerance;
-        phTol = tolerance;
-    }
-
-    public void translate(double x, double y, double h){
+    public void periodic() {
+        updateGyro();
         updateOdometry();
+    }
 
-        Rotation2d heading = getHeadingAsRotation2d();
+    public void driveTeleOp(double forward, double right, double rotation, boolean fieldCentric) {
+        ChassisSpeeds chassisSpeeds;
 
-        final Pose2d destination = new Pose2d(x, y, Rotation2d.fromDegrees(h));
-
-        Translation2d translationDistances = odometry.getPoseMeters().minus(destination).getTranslation();
-
-        double rotationDistance = heading.minus(Rotation2d.fromDegrees(h)).getRadians();
-
-        while (true){
-            double vxMultiplier;
-            double vyMultiplier;
-            double vhMultiplier;
-
-            updateOdometry();
-
-            heading = getHeadingAsRotation2d();
-
-            translationDistances = odometry.getPoseMeters().minus(destination).getTranslation();
-
-            rotationDistance = heading.minus(Rotation2d.fromDegrees(h)).getRadians();
-
-            ChassisSpeeds speeds;
-
-            if (translationDistances.getX() < -3 * pxTol){
-                vxMultiplier = 1;
-            } else if (translationDistances.getX() < -pxTol){
-                vxMultiplier = 0.5;
-            } else if (translationDistances.getX() < pxTol){
-                vxMultiplier = 0;
-            } else if (translationDistances.getX() < 3 * pxTol){
-                vxMultiplier = -0.5;
-            } else {
-                vxMultiplier = -1;
-            }
-
-            if (translationDistances.getY() < -3 * pyTol){
-                vyMultiplier = 1;
-            } else if (translationDistances.getY() < -pyTol){
-                vyMultiplier = 0.5;
-            } else if (translationDistances.getY() < pyTol){
-                vyMultiplier = 0;
-            } else if (translationDistances.getY() < 3 * pyTol){
-                vyMultiplier = -0.5;
-            } else {
-                vyMultiplier = -1;
-            }
-
-            /*
-            if (rotationDistance < -3 * phTol){
-                vhMultiplier = -1;
-            } else if (rotationDistance < -phTol){
-                vhMultiplier = -0.5;
-            } else if (rotationDistance < phTol){
-                vhMultiplier = 0;
-            } else if (rotationDistance < 3 * phTol){
-                vhMultiplier = 0.5;
-            } else {
-                vhMultiplier = 1;
-            }*/
-
-            if (Math.abs(heading.getRadians() - destination.getHeading()) < phTol){
-                vhMultiplier = 0;
-            } else if (heading.getRadians() < destination.getHeading()){
-                vhMultiplier = 1;
-            } else {
-                vhMultiplier = -1;
-            }
-
-            if (vxMultiplier == 0 && vyMultiplier == 0 && vhMultiplier == 0){
-                break;
-            }
-
-            speeds = ChassisSpeeds.fromFieldRelativeSpeeds(vxMultiplier * vMax, vyMultiplier * vMax, vhMultiplier * hMax, heading);
-
-            setMotors(kinematics.toWheelSpeeds(speeds));
+        if (fieldCentric){
+            chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(forward, right, rotation, odometry.getPoseMeters().getRotation());
+        } else {
+            chassisSpeeds = new ChassisSpeeds(forward, right, rotation);
         }
 
-        stop();
+        MecanumDriveWheelSpeeds wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
+        wheelSpeeds.normalize(MAX_SPEED_M_PER_S);
+        setMotors(wheelSpeeds);
     }
 
-    public void translate(double x, double y, double h, double maxTime){
-        ElapsedTime timer = new ElapsedTime();
-        timer.reset();
+    public void driveAuto() {
+        if (trajectory != null) {
+            double curTime = pathTime.time();
+            OmniTrajectory.State desiredState = trajectory.sample(curTime);
 
-        updateOdometry();
+            ChassisSpeeds targetChassisSpeeds = driveController.calculate(
+                    getOdometryLocation(),
+                    desiredState,
+                    desiredState.poseMeters.getRotation()
+            );
 
-        Rotation2d heading = getHeadingAsRotation2d();
+            MecanumDriveWheelSpeeds wheelSpeeds = kinematics.toWheelSpeeds(targetChassisSpeeds);
+            wheelSpeeds.normalize(MAX_SPEED_M_PER_S);
 
-        final Pose2d destination = new Pose2d(x, y, Rotation2d.fromDegrees(h));
-
-        while (true){
-            double vxMultiplier;
-            double vyMultiplier;
-            double vhMultiplier;
-
-            updateOdometry();
-
-            heading = getHeadingAsRotation2d();
-
-            ChassisSpeeds speeds;
-
-            if (Math.abs(odometry.getPoseMeters().getX() - destination.getX()) < pxTol){
-                vxMultiplier = 0;
-            } else if (odometry.getPoseMeters().getX() < destination.getX()){
-                vxMultiplier = 1;
-            } else {
-                vxMultiplier = -1;
-            }
-
-            if (Math.abs(odometry.getPoseMeters().getY() - destination.getY()) < pyTol){
-                vyMultiplier = 0;
-            } else if (odometry.getPoseMeters().getY() < destination.getY()){
-                vyMultiplier = 1;
-            } else {
-                vyMultiplier = -1;
-            }
-
-            if (Math.abs(heading.getRadians() - destination.getHeading()) < phTol){
-                vhMultiplier = 0;
-            } else if (heading.getRadians() < destination.getHeading()){
-                vhMultiplier = 1;
-            } else {
-                vhMultiplier = -1;
-            }
-
-            if (vxMultiplier == 0 && vyMultiplier == 0 && vhMultiplier == 0){
-                break;
-            }
-
-            if (timer.time() > maxTime){
-                break;
-            }
-
-            speeds = ChassisSpeeds.fromFieldRelativeSpeeds(vxMultiplier * vMax, vyMultiplier * vMax, vhMultiplier * hMax, heading);
-
-            setMotors(kinematics.toWheelSpeeds(speeds));
+            setMotors(wheelSpeeds);
+        } else {
+            setMotors(new MecanumDriveWheelSpeeds());
         }
-
-        stop();
     }
 
-    public void stop(){
-        frontLeftMotor.setVelocity(0);
-        frontRightMotor.setVelocity(0);
-        backLeftMotor.setVelocity(0);
-        backRightMotor.setVelocity(0);
-        wheelSpeeds = new MecanumDriveWheelSpeeds(0, 0, 0, 0);
-        frontLeftMotor.disable();
-        frontRightMotor.disable();
-        backLeftMotor.disable();
-        backRightMotor.disable();
+    public Pose2d getOdometryLocation() {
+        return odometry.getPoseMeters();
     }
 
-    private void updateOdometry(){
+    private void updateOdometry() {
         odometry.updateWithTime(runtime.time(),
-                getHeadingAsRotation2d(),
+                gyroAngle,
                 new MecanumDriveWheelSpeeds(
-                        frontLeftMotor.getVelocity() / METERS_TO_TICKS,
-                        frontRightMotor.getVelocity() / METERS_TO_TICKS,
-                        backLeftMotor.getVelocity() / METERS_TO_TICKS,
-                        backRightMotor.getVelocity() / METERS_TO_TICKS));
+                        frontLeftMotor.getVelocity() / METERS_TO_COUNTS,
+                        frontRightMotor.getVelocity() / METERS_TO_COUNTS,
+                        backLeftMotor.getVelocity() / METERS_TO_COUNTS,
+                        backRightMotor.getVelocity() / METERS_TO_COUNTS));
     }
 
-    private Rotation2d getHeadingAsRotation2d(){
-        return Rotation2d.fromDegrees(getHeading());
+    private void updateGyro() {
+        gyroAngle = gyro.getRotation2d();
     }
 
-    private double getHeading(){
-        double heading = gyro.getAbsoluteHeading() - hStart;
-        if (heading < -180) {
-            heading += 360;
-        } else if (heading > 180) {
-            heading -= 360;
-        }
-        return heading;
+    private void setMotors(@NonNull MecanumDriveWheelSpeeds wheelSpeeds) {
+        frontLeftMotor.setVelocity(wheelSpeeds.frontLeftMetersPerSecond * METERS_TO_COUNTS);
+        frontRightMotor.setVelocity(wheelSpeeds.frontRightMetersPerSecond * METERS_TO_COUNTS);
+        backLeftMotor.setVelocity(wheelSpeeds.rearLeftMetersPerSecond * METERS_TO_COUNTS);
+        backRightMotor.setVelocity(wheelSpeeds.rearRightMetersPerSecond * METERS_TO_COUNTS);
     }
 
-    private void setMotors(@NonNull MecanumDriveWheelSpeeds wheelSpeeds){
-        frontLeftMotor.setVelocity(wheelSpeeds.frontLeftMetersPerSecond * METERS_TO_TICKS);
-        frontRightMotor.setVelocity(wheelSpeeds.frontRightMetersPerSecond * METERS_TO_TICKS);
-        backLeftMotor.setVelocity(wheelSpeeds.rearLeftMetersPerSecond * METERS_TO_TICKS);
-        backRightMotor.setVelocity(wheelSpeeds.rearRightMetersPerSecond * METERS_TO_TICKS);
+    /** Stop all motors from running. */
+    public void stop() {
+        frontLeftMotor.stopMotor();
+        frontRightMotor.stopMotor();
+        backLeftMotor.stopMotor();
+        backRightMotor.stopMotor();
+    }
+
+    public void resetGyro() {
+        gyro.reset();
+    }
+
+    public void resetOdometry(Pose2d robotPose) {
+        odometry.resetPosition(robotPose, gyroAngle);
+    }
+
+    public OmniTrajectory getTrajectory() {
+        return trajectory;
+    }
+
+    public void setTrajectory(OmniTrajectory trajectory) {
+        this.trajectory = trajectory;
+        this.pathTime.reset();
     }
 }
