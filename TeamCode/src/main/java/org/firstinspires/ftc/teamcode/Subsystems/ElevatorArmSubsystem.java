@@ -8,15 +8,15 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-import java.util.Hashtable;
-
 public class ElevatorArmSubsystem extends SubsystemBase {
     private final MotorEx leftElevatorMotor;
     private final MotorEx rightElevatorMotor;
     private final MotorEx armMotor;
 
-    private final double TICKS_PER_ROTATION = 1440;
-    private final double MM_PER_TICK = (-30 * Math.PI) / (TICKS_PER_ROTATION);
+    private final double TICKS_PER_ROTATION_ELEVATOR = Motor.GoBILDA.RPM_1620.getCPR();
+    private final double TICKS_PER_ROTATION_ARM = Motor.GoBILDA.RPM_1620.getCPR(); // TODO: Change this to reflect what gearbox is on the arm motor
+
+    private final double MM_PER_TICK = (-30 * Math.PI) / (TICKS_PER_ROTATION_ELEVATOR);
 
     // Max ticks per second for analog stick control
     private final double ELEVATOR_MAX_TICKS_PER_SECOND = 20;
@@ -25,12 +25,8 @@ public class ElevatorArmSubsystem extends SubsystemBase {
     private final double elevatorMotorRunPower = 0.6;
     private final double armMotorRunPower = 0;
 
-    private Levels targetLevel;
     private int targetElevatorPosition;
     private int targetArmPosition;
-
-    public final Hashtable<Levels, Integer> elevatorLevels;
-    public final Hashtable<Levels, Integer> armLevels;
 
     private final ElapsedTime elapsedTime;
     private double previousTime = 0;
@@ -58,19 +54,6 @@ public class ElevatorArmSubsystem extends SubsystemBase {
         this.rightElevatorMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         this.armMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
 
-        this.elevatorLevels = new Hashtable<>();
-        this.elevatorLevels.put(Levels.GROUNDED, 0);
-        this.elevatorLevels.put(Levels.L1, 0);
-        this.elevatorLevels.put(Levels.L2, 0);
-        this.elevatorLevels.put(Levels.L3, 0);
-
-        this.armLevels = new Hashtable<>();
-        this.armLevels.put(Levels.GROUNDED, 0);
-        this.armLevels.put(Levels.L1, 0);
-        this.armLevels.put(Levels.L2, 0);
-        this.armLevels.put(Levels.L3, 0);
-
-        this.targetLevel = null;
         this.targetElevatorPosition = 0;
         this.targetArmPosition = 0;
 
@@ -100,7 +83,6 @@ public class ElevatorArmSubsystem extends SubsystemBase {
                 shouldArmMotorRun() ?
                         this.armMotorRunPower : 0
         );
-
     }
 
     public void moveElevatorTargetPosition(int amountToMove) {
@@ -132,9 +114,8 @@ public class ElevatorArmSubsystem extends SubsystemBase {
     }
 
     public void setTargetLevel(Levels targetLevel) {
-        this.targetLevel = targetLevel;
-        this.setElevatorTargetPosition(this.elevatorLevels.get(this.targetLevel));
-        this.setArmTargetPosition(this.armLevels.get(this.targetLevel));
+        this.setElevatorTargetPosition(targetLevel.elevatorPos);
+        this.setArmTargetPosition(targetLevel.armPos);
     }
 
     private boolean shouldLeftElevatorMotorRun() {
@@ -163,9 +144,17 @@ public class ElevatorArmSubsystem extends SubsystemBase {
     }
 
     public enum Levels {
-        GROUNDED,
-        L1,
-        L2,
-        L3
+        GROUNDED (0, 0),
+        L1 (0, 0),
+        L2 (0, 0),
+        L3 (0, 0);
+
+        public final int elevatorPos;
+        public final int armPos;
+
+        Levels(int elevatorPos, int armPos) {
+            this.elevatorPos = elevatorPos;
+            this.armPos = armPos;
+        }
     }
 }
