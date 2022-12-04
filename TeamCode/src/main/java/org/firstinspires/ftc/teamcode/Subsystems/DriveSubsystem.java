@@ -55,6 +55,8 @@ public class DriveSubsystem extends SubsystemBase {
 
     private OmniTrajectory trajectory;
 
+    private double highestSpeeds = 0;
+
     public DriveSubsystem(HardwareMap hardwareMap, Telemetry telemetry) {
         this.frontLeftMotor = new MotorEx(hardwareMap, "FL", Motor.GoBILDA.RPM_312);
         this.frontRightMotor = new MotorEx(hardwareMap, "FR", Motor.GoBILDA.RPM_312);
@@ -141,6 +143,14 @@ public class DriveSubsystem extends SubsystemBase {
         MecanumDriveWheelSpeeds wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
         wheelSpeeds.normalize(MAX_SPEED_M_PER_S);
         setMotors(wheelSpeeds);
+
+        /*telemetry.addData("target forwards", forward);
+        telemetry.addData("idk man", wheelSpeeds);
+        if (highestSpeeds < wheelSpeeds.frontLeftMetersPerSecond) {
+            highestSpeeds = wheelSpeeds.frontLeftMetersPerSecond;
+        }
+
+        telemetry.addData("max commanded speed", highestSpeeds);*/
     }
 
     public void driveAuto() {
@@ -168,6 +178,12 @@ public class DriveSubsystem extends SubsystemBase {
     }
 
     private void updateOdometry() {
+        /*telemetry.addData("actual forward", kinematics.toChassisSpeeds(new MecanumDriveWheelSpeeds(
+                frontLeftMotor.getVelocity() / METERS_TO_COUNTS,
+                frontRightMotor.getVelocity() / METERS_TO_COUNTS,
+                backLeftMotor.getVelocity() / METERS_TO_COUNTS,
+                backRightMotor.getVelocity() / METERS_TO_COUNTS
+        )));*/
         odometry.updateWithTime(runtime.time(),
                 gyroAngle,
                 new MecanumDriveWheelSpeeds(
@@ -182,6 +198,7 @@ public class DriveSubsystem extends SubsystemBase {
     }
 
     private void setMotors(@NonNull MecanumDriveWheelSpeeds wheelSpeeds) {
+        telemetry.addData("commanded speeds", wheelSpeeds);
         frontLeftMotor.setVelocity(wheelSpeeds.frontLeftMetersPerSecond * METERS_TO_COUNTS);
         frontRightMotor.setVelocity(wheelSpeeds.frontRightMetersPerSecond * METERS_TO_COUNTS);
         backLeftMotor.setVelocity(wheelSpeeds.rearLeftMetersPerSecond * METERS_TO_COUNTS);
