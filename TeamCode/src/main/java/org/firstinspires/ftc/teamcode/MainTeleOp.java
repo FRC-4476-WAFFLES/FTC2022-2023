@@ -24,7 +24,6 @@ public class MainTeleOp extends LinearOpMode {
     private GamepadEx operatorController;
 
     private DriveSubsystem driveSubsystem;
-    //private ElevatorArmSubsystem elevatorArm;
     private ArmSubsystem armSubsystem;
     private IntakeSubsystem intake;
 
@@ -37,11 +36,6 @@ public class MainTeleOp extends LinearOpMode {
                 hardwareMap,
                 telemetry
         );
-
-        /*this.elevatorArm = new ElevatorArmSubsystem(
-                hardwareMap,
-                telemetry
-        );*/
 
         this.armSubsystem = new ArmSubsystem(
                 hardwareMap,
@@ -87,24 +81,6 @@ public class MainTeleOp extends LinearOpMode {
             this.armSubsystem.moveTargetPositionWithJoystick(
                     MathUtil.applyDeadband(operatorController.getRightY(), 0.05)
             );
-
-            /*if (this.operatorController.getButton(GamepadKeys.Button.A)) {
-                this.elevatorArm.setTargetLevel(ElevatorArmSubsystem.Levels.GROUNDED);
-            } else if (this.operatorController.getButton(GamepadKeys.Button.B)) {
-                this.elevatorArm.setTargetLevel(ElevatorArmSubsystem.Levels.L1);
-            } else if (this.operatorController.getButton(GamepadKeys.Button.X)) {
-                this.elevatorArm.setTargetLevel(ElevatorArmSubsystem.Levels.L2);
-            } else if (this.operatorController.getButton(GamepadKeys.Button.Y)) {
-                this.elevatorArm.setTargetLevel(ElevatorArmSubsystem.Levels.L3);
-            }
-
-            double elevatorJoystickValue = this.operatorController.getRightY();
-            double armJoystickValue = this.operatorController.getLeftY();
-
-            this.elevatorArm.moveElevatorWithAnalogStick(elevatorJoystickValue);
-            this.elevatorArm.moveArmWithAnalogStick(armJoystickValue);
-
-            this.elevatorArm.periodic();*/
 
             this.armSubsystem.periodic();
             this.driveSubsystem.periodic();
