@@ -20,8 +20,8 @@ public class ArmSubsystem extends SubsystemBase {
     private final MotorExPositionPIDF armMotor;
 
     private final double TICKS_PER_DEGREE = Motor.GoBILDA.RPM_435.getCPR() * 5.0 / 360.0;
-    private final int POS_HORIZONTAL = 200; // TODO: Measure motor position when arm is horizontal
-    private final double maxGravityFF = 0.07; // TODO: Set this number to be the maximum motor power applied by feedforward
+    private final int POS_HORIZONTAL = 280;
+    private final double maxGravityFF = 0.04;
 
     private int targetPosition;
 
@@ -34,9 +34,9 @@ public class ArmSubsystem extends SubsystemBase {
         armMotor.resetEncoder();
         armMotor.setInverted(true);
         armMotor.setPositionTolerance(15);
-        armMotor.setPID(0.0, 0.0, 0.0); // TODO: Test and set values for these coefficients, starting with arbitrary feedforward
+        armMotor.setPID(0.005, 0.0, 0.00011); // TODO: Test and set values for these coefficients
         armMotor.setF(0.0);
-        armMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
+        armMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.FLOAT);
 
         targetPosition = 0;
     }
@@ -59,6 +59,7 @@ public class ArmSubsystem extends SubsystemBase {
 
         telemetry.addData("arm pos", armMotor.getCurrentPosition());
         telemetry.addData("target pos", targetPosition);
+        telemetry.addData("cosine scalar", cosineScalar);
         telemetry.addData("applied feedforward value", maxGravityFF * cosineScalar);
     }
 
@@ -79,7 +80,7 @@ public class ArmSubsystem extends SubsystemBase {
     }
 
     public enum Positions {
-        LOWERED_FRONT (0),
+        LOWERED_FRONT (100),
         RAISED_FRONT (500),
         RAISED_BACK (900),
         LOWERED_BACK (1400);
