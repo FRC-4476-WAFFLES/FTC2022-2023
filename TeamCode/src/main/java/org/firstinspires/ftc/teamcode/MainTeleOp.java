@@ -2,22 +2,17 @@ package org.firstinspires.ftc.teamcode;
 
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys;
-import com.arcrobotics.ftclib.hardware.motors.Motor;
-import com.arcrobotics.ftclib.hardware.motors.MotorEx;
-import com.arcrobotics.ftclib.util.MathUtils;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.Subsystems.ArmSubsystem;
-import org.firstinspires.ftc.teamcode.Subsystems.CameraSubsystem;
 import org.firstinspires.ftc.teamcode.Subsystems.DriveSubsystem;
-import org.firstinspires.ftc.teamcode.Subsystems.ElevatorArmSubsystem;
 import org.firstinspires.ftc.teamcode.Subsystems.IntakeSubsystem;
 
 import lib.autoNavigation.math.MathUtil;
 
-@Disabled
+//@Disabled
 @TeleOp(name = "Main TeleOp")
 public class MainTeleOp extends LinearOpMode {
     private GamepadEx driverController;
@@ -25,7 +20,7 @@ public class MainTeleOp extends LinearOpMode {
 
     private DriveSubsystem driveSubsystem;
     private ArmSubsystem armSubsystem;
-    private IntakeSubsystem intake;
+    private IntakeSubsystem intakeSubsystem;
 
     @Override
     public void runOpMode() {
@@ -42,7 +37,7 @@ public class MainTeleOp extends LinearOpMode {
                 telemetry
         );
 
-        this.intake = new IntakeSubsystem(
+        this.intakeSubsystem = new IntakeSubsystem(
                 hardwareMap,
                 telemetry
         );
@@ -51,36 +46,44 @@ public class MainTeleOp extends LinearOpMode {
 
         while (opModeIsActive()) {
             if (
-                    this.driverController.getButton(GamepadKeys.Button.START) &&
-                    this.driverController.getButton(GamepadKeys.Button.BACK)
+                    driverController.getButton(GamepadKeys.Button.START) &&
+                    driverController.getButton(GamepadKeys.Button.BACK)
             ) {
                 driveSubsystem.resetGyro();
             }
 
-            double driveForwardValue = this.driverController.getLeftY();
-            double driveRightValue = this.driverController.getLeftX();
-            double driveRotationValue = this.driverController.getRightX();
+            double driveForwardValue = driverController.getLeftY() * 1.5;
+            double driveRightValue = driverController.getLeftX() * -1.5;
+            double driveRotationValue = driverController.getRightX() * -3.0;
 
-            this.driveSubsystem.driveTeleOp(
+            driveSubsystem.driveTeleOp(
                     driveForwardValue,
                     driveRightValue,
                     driveRotationValue,
                     true
             );
 
-            if (this.operatorController.getButton(GamepadKeys.Button.A)) {
-                this.armSubsystem.setTargetPosition(ArmSubsystem.Positions.LOWERED_FRONT);
-            } else if (this.operatorController.getButton(GamepadKeys.Button.B)) {
-                this.armSubsystem.setTargetPosition(ArmSubsystem.Positions.RAISED_FRONT);
-            } else if (this.operatorController.getButton(GamepadKeys.Button.X)) {
-                this.armSubsystem.setTargetPosition(ArmSubsystem.Positions.LOWERED_BACK);
-            } else if (this.operatorController.getButton(GamepadKeys.Button.Y)) {
-                this.armSubsystem.setTargetPosition(ArmSubsystem.Positions.RAISED_BACK);
+            if (operatorController.getButton(GamepadKeys.Button.A)) {
+                armSubsystem.setTargetPosition(ArmSubsystem.Positions.LOWERED_FRONT);
+            } else if (operatorController.getButton(GamepadKeys.Button.B)) {
+                armSubsystem.setTargetPosition(ArmSubsystem.Positions.RAISED_FRONT);
+            } else if (operatorController.getButton(GamepadKeys.Button.X)) {
+                armSubsystem.setTargetPosition(ArmSubsystem.Positions.LOWERED_BACK);
+            } else if (operatorController.getButton(GamepadKeys.Button.Y)) {
+                armSubsystem.setTargetPosition(ArmSubsystem.Positions.RAISED_BACK);
             }
 
-            this.armSubsystem.moveTargetPositionWithJoystick(
-                    MathUtil.applyDeadband(operatorController.getRightY(), 0.05)
+            armSubsystem.moveTargetPositionWithJoystick(
+                    MathUtil.applyDeadband(operatorController.getLeftY(), 0.05)
             );
+
+            if (operatorController.getButton(GamepadKeys.Button.RIGHT_BUMPER)) {
+                intakeSubsystem.operate(IntakeSubsystem.Modes.INTAKE);
+            } else if (operatorController.getButton(GamepadKeys.Button.LEFT_BUMPER)) {
+                intakeSubsystem.operate(IntakeSubsystem.Modes.OUTTAKE);
+            } else {
+                intakeSubsystem.operate(IntakeSubsystem.Modes.PASSIVE);
+            }
 
             this.armSubsystem.periodic();
             this.driveSubsystem.periodic();
@@ -90,5 +93,6 @@ public class MainTeleOp extends LinearOpMode {
 
         driveSubsystem.stop();
         armSubsystem.stop();
+        intakeSubsystem.stop();
     }
 }

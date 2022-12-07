@@ -45,7 +45,7 @@ public class DriveSubsystem extends SubsystemBase {
 
     private final double MAX_ACCEL_M_PER_S_SQ = 1.0; //TODO: Set this number to be accurate;
 
-    private MecanumDriveKinematics kinematics;
+    private final MecanumDriveKinematics kinematics;
     private Rotation2d gyroAngle;
     private final MecanumDriveOdometry odometry;
 
@@ -54,8 +54,6 @@ public class DriveSubsystem extends SubsystemBase {
     private final HolonomicDriveController driveController;
 
     private OmniTrajectory trajectory;
-
-    private double highestSpeeds = 0;
 
     public DriveSubsystem(HardwareMap hardwareMap, Telemetry telemetry) {
         this.frontLeftMotor = new MotorEx(hardwareMap, "FL", Motor.GoBILDA.RPM_312);
@@ -67,9 +65,9 @@ public class DriveSubsystem extends SubsystemBase {
         this.telemetry = telemetry;
 
         //TODO: Set and tune PID coefficients to be good
-        PIDController xController = new PIDController(-7.1, 0.0, -0.2);
-        PIDController yController = new PIDController(7.1, 0.0, 0.2);
-        ProfiledPIDController thetaController = new ProfiledPIDController(-6.0, 0.0, 0.0,
+        PIDController xController = new PIDController(3.0, 0.0, 0.0);
+        PIDController yController = new PIDController(3.0, 0.0, 0.0);
+        ProfiledPIDController thetaController = new ProfiledPIDController(3.0, 0.0, 0.0,
                 new TrapezoidProfile.Constraints(
                         MAX_SPEED_M_PER_S,
                         MAX_ACCEL_M_PER_S_SQ));
@@ -113,10 +111,10 @@ public class DriveSubsystem extends SubsystemBase {
         // Setup the odometry system
         // Set the locations of the wheels on the robot
         // TODO: Update wheel locations to match this year's chassis
-        Translation2d frontLeftLocation = new Translation2d(0.167,0.195);
-        Translation2d frontRightLocation = new Translation2d(0.167,-0.195);
-        Translation2d backLeftLocation = new Translation2d(-0.167,0.195);
-        Translation2d backRightLocation = new Translation2d(-0.167,-0.195);
+        Translation2d frontLeftLocation = new Translation2d(0.168,0.207);
+        Translation2d frontRightLocation = new Translation2d(0.168,-0.207);
+        Translation2d backLeftLocation = new Translation2d(-0.168,0.207);
+        Translation2d backRightLocation = new Translation2d(-0.168,-0.207);
 
         // Create a mecanum kinematics object from the wheel locations
         kinematics = new MecanumDriveKinematics(frontLeftLocation, frontRightLocation, backLeftLocation, backRightLocation);
@@ -129,13 +127,16 @@ public class DriveSubsystem extends SubsystemBase {
     public void periodic() {
         updateGyro();
         updateOdometry();
+
+        telemetry.addData("Current Pos", odometry.getPoseMeters());
+        telemetry.addData("Current Heading", gyroAngle);
     }
 
     public void driveTeleOp(double forward, double right, double rotation, boolean fieldCentric) {
         ChassisSpeeds chassisSpeeds;
 
         if (fieldCentric){
-            chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(forward, right, rotation, odometry.getPoseMeters().getRotation());
+            chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(forward, right, rotation, gyroAngle);
         } else {
             chassisSpeeds = new ChassisSpeeds(forward, right, rotation);
         }
@@ -143,14 +144,6 @@ public class DriveSubsystem extends SubsystemBase {
         MecanumDriveWheelSpeeds wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
         wheelSpeeds.normalize(MAX_SPEED_M_PER_S);
         setMotors(wheelSpeeds);
-
-        /*telemetry.addData("target forwards", forward);
-        telemetry.addData("idk man", wheelSpeeds);
-        if (highestSpeeds < wheelSpeeds.frontLeftMetersPerSecond) {
-            highestSpeeds = wheelSpeeds.frontLeftMetersPerSecond;
-        }
-
-        telemetry.addData("max commanded speed", highestSpeeds);*/
     }
 
     public void driveAuto() {
@@ -178,12 +171,6 @@ public class DriveSubsystem extends SubsystemBase {
     }
 
     private void updateOdometry() {
-        /*telemetry.addData("actual forward", kinematics.toChassisSpeeds(new MecanumDriveWheelSpeeds(
-                frontLeftMotor.getVelocity() / METERS_TO_COUNTS,
-                frontRightMotor.getVelocity() / METERS_TO_COUNTS,
-                backLeftMotor.getVelocity() / METERS_TO_COUNTS,
-                backRightMotor.getVelocity() / METERS_TO_COUNTS
-        )));*/
         odometry.updateWithTime(runtime.time(),
                 gyroAngle,
                 new MecanumDriveWheelSpeeds(

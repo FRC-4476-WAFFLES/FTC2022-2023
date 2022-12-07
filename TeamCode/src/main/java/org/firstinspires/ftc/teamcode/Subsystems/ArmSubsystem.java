@@ -34,7 +34,7 @@ public class ArmSubsystem extends SubsystemBase {
         armMotor.resetEncoder();
         armMotor.setInverted(true);
         armMotor.setPositionTolerance(15);
-        armMotor.setPID(0.005, 0.0, 0.00011); // TODO: Test and set values for these coefficients
+        armMotor.setPID(0.005, 0.0, 0.00015); // TODO: Test and set values for these coefficients
         armMotor.setF(0.0);
         armMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.FLOAT);
 
@@ -68,11 +68,11 @@ public class ArmSubsystem extends SubsystemBase {
     }
 
     public void moveTargetPosition(int amountToMove) {
-        this.targetPosition = MathUtil.clamp(this.targetPosition + amountToMove, 0, 1400); // TODO: adjust magic limit numbers to prevent thing from colliding with other thing
+        this.targetPosition = MathUtil.clamp(this.targetPosition + amountToMove, 0, 1475); // TODO: adjust magic limit numbers to prevent thing from colliding with other thing
     }
 
     public void moveTargetPositionWithJoystick(double value) {
-        moveTargetPosition((int) (value * previousLoopTime * 20.0)); // TODO: adjust magic number to make thing work good
+        moveTargetPosition((int) (value * previousLoopTime * 500.0)); // TODO: adjust magic number to make thing work good
     }
 
     public void stop() {
