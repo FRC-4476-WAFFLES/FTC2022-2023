@@ -7,6 +7,7 @@ import com.arcrobotics.ftclib.controller.PIDController;
 import com.arcrobotics.ftclib.controller.wpilibcontroller.ProfiledPIDController;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
+import com.arcrobotics.ftclib.geometry.Transform2d;
 import com.arcrobotics.ftclib.geometry.Translation2d;
 import com.arcrobotics.ftclib.hardware.GyroEx;
 import com.arcrobotics.ftclib.hardware.RevIMU;
@@ -23,6 +24,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import lib.autoNavigation.controller.HolonomicDriveController;
+import lib.autoNavigation.math.MathUtil;
 import lib.autoNavigation.trajectory.OmniTrajectory;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -65,9 +67,9 @@ public class DriveSubsystem extends SubsystemBase {
         this.telemetry = telemetry;
 
         //TODO: Set and tune PID coefficients to be good
-        PIDController xController = new PIDController(3.0, 0.0, 0.0);
-        PIDController yController = new PIDController(3.0, 0.0, 0.0);
-        ProfiledPIDController thetaController = new ProfiledPIDController(3.0, 0.0, 0.0,
+        PIDController xController = new PIDController(4.0, 0.0, 0.0);
+        PIDController yController = new PIDController(4.0, 0.0, 0.0);
+        ProfiledPIDController thetaController = new ProfiledPIDController(4.0, 0.1, 0.0,
                 new TrapezoidProfile.Constraints(
                         MAX_SPEED_M_PER_S,
                         MAX_ACCEL_M_PER_S_SQ));
@@ -110,7 +112,6 @@ public class DriveSubsystem extends SubsystemBase {
 
         // Setup the odometry system
         // Set the locations of the wheels on the robot
-        // TODO: Update wheel locations to match this year's chassis
         Translation2d frontLeftLocation = new Translation2d(0.168,0.207);
         Translation2d frontRightLocation = new Translation2d(0.168,-0.207);
         Translation2d backLeftLocation = new Translation2d(-0.168,0.207);
@@ -129,7 +130,6 @@ public class DriveSubsystem extends SubsystemBase {
         updateOdometry();
 
         telemetry.addData("Current Pos", odometry.getPoseMeters());
-        telemetry.addData("Current Heading", gyroAngle);
     }
 
     public void driveTeleOp(double forward, double right, double rotation, boolean fieldCentric) {
@@ -151,6 +151,8 @@ public class DriveSubsystem extends SubsystemBase {
             double curTime = pathTime.time();
             OmniTrajectory.State desiredState = trajectory.sample(curTime);
 
+            telemetry.addData("Desired Pos", desiredState.poseMeters);
+
             ChassisSpeeds targetChassisSpeeds = driveController.calculate(
                     getOdometryLocation(),
                     desiredState,
@@ -164,6 +166,17 @@ public class DriveSubsystem extends SubsystemBase {
         } else {
             setMotors(new MecanumDriveWheelSpeeds());
         }
+    }
+
+    public boolean isPathFinished() {
+        if (trajectory == null) {
+            return true;
+        }
+        Pose2d endPose = trajectory.getStates().get(trajectory.getStates().size() - 1).poseMeters;
+        telemetry.addData("End Pose", endPose);
+        return Math.abs(odometry.getPoseMeters().getX() - endPose.getX()) < 0.1
+                && Math.abs(odometry.getPoseMeters().getY() - endPose.getY()) < 0.1
+                && Math.abs(gyroAngle.getDegrees() - endPose.getRotation().getDegrees()) < 5.0;
     }
 
     public Pose2d getOdometryLocation() {
@@ -185,7 +198,7 @@ public class DriveSubsystem extends SubsystemBase {
     }
 
     private void setMotors(@NonNull MecanumDriveWheelSpeeds wheelSpeeds) {
-        telemetry.addData("commanded speeds", wheelSpeeds);
+        //telemetry.addData("commanded speeds", wheelSpeeds);
         frontLeftMotor.setVelocity(wheelSpeeds.frontLeftMetersPerSecond * METERS_TO_COUNTS);
         frontRightMotor.setVelocity(wheelSpeeds.frontRightMetersPerSecond * METERS_TO_COUNTS);
         backLeftMotor.setVelocity(wheelSpeeds.rearLeftMetersPerSecond * METERS_TO_COUNTS);
@@ -215,5 +228,12 @@ public class DriveSubsystem extends SubsystemBase {
     public void setTrajectory(OmniTrajectory trajectory) {
         this.trajectory = trajectory;
         this.pathTime.reset();
+    }
+
+    public void disableMotors() {
+        frontLeftMotor.disable();
+        frontRightMotor.disable();
+        backLeftMotor.disable();
+        backRightMotor.disable();
     }
 }

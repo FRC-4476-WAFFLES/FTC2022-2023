@@ -49,7 +49,8 @@ public class MainTeleOp extends LinearOpMode {
                     driverController.getButton(GamepadKeys.Button.START) &&
                     driverController.getButton(GamepadKeys.Button.BACK)
             ) {
-                driveSubsystem.resetGyro();
+                //driveSubsystem.resetGyro();
+                driveSubsystem.disableMotors();
             }
 
             double driveForwardValue = driverController.getLeftY() * 1.5;

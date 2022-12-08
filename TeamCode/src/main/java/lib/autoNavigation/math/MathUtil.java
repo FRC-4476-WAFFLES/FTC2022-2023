@@ -7,6 +7,10 @@ import com.arcrobotics.ftclib.geometry.Twist2d;
 public final class MathUtil {
     private MathUtil() {}
 
+    public static boolean withinTolerance(double value, double targetValue, double tolerance) {
+        return clamp(value, targetValue - tolerance, targetValue + tolerance) == value;
+    }
+
     /**
      * Returns value clamped between low and high boundaries.
      *
@@ -93,7 +97,7 @@ public final class MathUtil {
      */
     @SuppressWarnings("ParameterName")
     public static double interpolate(double startValue, double endValue, double t) {
-        return startValue + (endValue - startValue) * MathUtil.clamp(t, 0, 1);
+        return startValue + (endValue - startValue) * clamp(t, 0, 1);
     }
 
     @SuppressWarnings("ParameterName")
@@ -111,6 +115,6 @@ public final class MathUtil {
 
     @SuppressWarnings("ParameterName")
     public static Rotation2d interpolate(Rotation2d startValue, Rotation2d endValue, double t) {
-        return new Rotation2d(MathUtil.interpolate(startValue.getRadians(), endValue.getRadians(), t));
+        return new Rotation2d(interpolate(startValue.getRadians(), endValue.getRadians(), t));
     }
 }

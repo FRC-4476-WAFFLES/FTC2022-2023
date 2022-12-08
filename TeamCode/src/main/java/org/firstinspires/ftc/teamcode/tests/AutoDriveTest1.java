@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.tests;
 
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
@@ -23,14 +23,10 @@ public class AutoDriveTest1 extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         driveSubsystem = new DriveSubsystem(hardwareMap, telemetry);
 
-        OmniWaypoint waypoint1 = new OmniWaypoint(new Pose2d(0, 0, Rotation2d.fromDegrees(0)), Rotation2d.fromDegrees(0));
-        OmniWaypoint waypoint2 = new OmniWaypoint(new Pose2d(1, 1, Rotation2d.fromDegrees(180)), Rotation2d.fromDegrees(180));
-        OmniWaypoint waypoint3 = new OmniWaypoint(new Pose2d(-2, 0, Rotation2d.fromDegrees(90)), Rotation2d.fromDegrees(90));
-
         List<OmniWaypoint> waypointList = new ArrayList<>();
-        waypointList.add(waypoint1);
-        waypointList.add(waypoint2);
-        waypointList.add(waypoint3);
+        waypointList.add(new OmniWaypoint(new Pose2d(0, 0, Rotation2d.fromDegrees(0)), Rotation2d.fromDegrees(0)));
+        waypointList.add(new OmniWaypoint(new Pose2d(1, 0, Rotation2d.fromDegrees(90)), Rotation2d.fromDegrees(180)));
+        //waypointList.add(new OmniWaypoint(new Pose2d(0, 0, Rotation2d.fromDegrees(180)), Rotation2d.fromDegrees(-90)));
 
         OmniTrajectoryConfig config = new OmniTrajectoryConfig(1.5, 3, 2, 3);
 
@@ -45,6 +41,29 @@ public class AutoDriveTest1 extends LinearOpMode {
             driveSubsystem.periodic();
 
             telemetry.update();
+
+            if (driveSubsystem.isPathFinished()) {
+                break;
+            }
+        }
+
+        List<OmniWaypoint> waypointList2 = new ArrayList<>();
+        waypointList2.add(new OmniWaypoint(driveSubsystem.getOdometryLocation(), Rotation2d.fromDegrees(0)));
+        waypointList2.add(new OmniWaypoint(new Pose2d(-1, 1, Rotation2d.fromDegrees(-135)), Rotation2d.fromDegrees(-90)));
+
+        OmniTrajectory trajectory1 = OmniTrajectoryGenerator.generateTrajectory(waypointList2, config);
+
+        driveSubsystem.setTrajectory(trajectory1);
+
+        while (opModeIsActive()) {
+            driveSubsystem.driveAuto();
+            driveSubsystem.periodic();
+
+            telemetry.update();
+
+            if (driveSubsystem.isPathFinished()) {
+                break;
+            }
         }
 
         driveSubsystem.stop();
