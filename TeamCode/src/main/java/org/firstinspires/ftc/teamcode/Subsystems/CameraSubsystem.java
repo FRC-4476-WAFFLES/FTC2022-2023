@@ -8,12 +8,13 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
+import org.openftc.easyopencv.OpenCvPipeline;
 
 public class CameraSubsystem extends SubsystemBase {
     OpenCvCamera webcam;
     int cameraMonitorViewId;
 
-    SignalSleevePipeline pipeline;
+    AlternativePipeline pipeline;
 
     public CameraSubsystem(HardwareMap hardwareMap, Telemetry telemetry) {
         // Get webcam object from hardwareMap
@@ -29,7 +30,7 @@ public class CameraSubsystem extends SubsystemBase {
                 ), this.cameraMonitorViewId);
 
         // Set pipeline to Freight Detector
-        this.pipeline = new SignalSleevePipeline(telemetry);
+        this.pipeline = new AlternativePipeline(telemetry);
         this.webcam.setPipeline(pipeline);
 
         // Activate camera
