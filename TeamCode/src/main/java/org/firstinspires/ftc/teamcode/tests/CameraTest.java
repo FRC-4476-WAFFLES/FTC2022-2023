@@ -15,6 +15,12 @@ public class CameraTest extends LinearOpMode {
     public void runOpMode() {
         this.camera = new CameraSubsystem(hardwareMap, telemetry);
 
+        while (opModeInInit()) {
+            int location = this.camera.getParkingLocation();
+            telemetry.addData("Location: ", location);
+            telemetry.update();
+        }
+
         waitForStart();
 
         while (opModeIsActive()) {

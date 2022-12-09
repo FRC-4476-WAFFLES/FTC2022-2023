@@ -5,6 +5,7 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.OpenCvPipeline;
 
@@ -20,8 +21,8 @@ public class AlternativePipeline extends OpenCvPipeline {
     private final Mat cvThreshold2Output = new Mat();
 
     public Rect SignalSleeveROI = new Rect(
-            new Point(900, 200),
-            new Point(1200, 700)
+            new Point(1000, 100),
+            new Point(1100, 400)
     );
 
     public AlternativePipeline(Telemetry telemetry) {
@@ -33,21 +34,23 @@ public class AlternativePipeline extends OpenCvPipeline {
         cvExtractchannel(input, 0, cvExtractchannel0Output);
         cvExtractchannel(input, 2, cvExtractchannel2Output);
 
-        cvThreshold(cvExtractchannel0Output, 81.0, 255, Imgproc.THRESH_BINARY_INV, cvThreshold0Output);
+        cvThreshold(cvExtractchannel0Output, 59.0, 255, Imgproc.THRESH_BINARY_INV, cvThreshold0Output);
         cvThreshold(cvExtractchannel2Output, 91.0, 255, Imgproc.THRESH_BINARY_INV, cvThreshold2Output);
 
         double channel0Average = cvMean(cvExtractchannel0Output.submat(SignalSleeveROI));
         double channel2Average = cvMean(cvExtractchannel2Output.submat(SignalSleeveROI));
 
         if (channel0Average < 100) {
-            parkingLocation = 1;
-        } else if (channel2Average < 100) {
             parkingLocation = 3;
+        } else if (channel2Average < 100) {
+            parkingLocation = 1;
         } else {
             parkingLocation = 2;
         }
 
-        return input;
+        Imgproc.rectangle(cvThreshold0Output, this.SignalSleeveROI, new Scalar(0, 255, 0), 4);
+
+        return cvThreshold0Output;
     }
 
     /**
