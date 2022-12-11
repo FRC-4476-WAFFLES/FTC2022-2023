@@ -1,10 +1,9 @@
 package org.firstinspires.ftc.teamcode.tests;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.teamcode.Subsystems.CameraSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.CameraSubsystem;
 
 //@Disabled
 @TeleOp(name = "Camera Test")
