@@ -11,13 +11,15 @@ import lib.autoNavigation.math.MathUtil;
 import lib.hardware.motors.MotorExPositionPIDF;
 
 public class ArmSubsystem extends SubsystemBase {
+    private static final ArmSubsystem instance = new ArmSubsystem();
+
     private final ElapsedTime elapsedTime = new ElapsedTime();
     private double previousTime = 0;
     private double previousLoopTime = 0;
 
-    private final Telemetry telemetry;
+    private Telemetry telemetry;
 
-    private final MotorExPositionPIDF armMotor;
+    private MotorExPositionPIDF armMotor;
 
     private final double TICKS_PER_DEGREE = Motor.GoBILDA.RPM_435.getCPR() * 5.0 / 360.0;
     private final int POS_HORIZONTAL = 280;
@@ -25,7 +27,13 @@ public class ArmSubsystem extends SubsystemBase {
 
     private int targetPosition;
 
-    public ArmSubsystem(HardwareMap hardwareMap, Telemetry telemetry) {
+    private ArmSubsystem() {}
+
+    public static synchronized ArmSubsystem getInstance() {
+        return instance;
+    }
+
+    public void init(HardwareMap hardwareMap, Telemetry telemetry) {
         this.telemetry = telemetry;
 
         armMotor = new MotorExPositionPIDF(hardwareMap, "Arm", Motor.GoBILDA.RPM_435);

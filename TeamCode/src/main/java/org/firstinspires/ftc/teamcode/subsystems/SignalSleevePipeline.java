@@ -1,28 +1,24 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
-import org.openftc.easyopencv.OpenCvPipeline;
 
-public class SignalSleevePipeline extends OpenCvPipeline {
+public class SignalSleevePipeline extends ParkingLocationPipeline {
     private final int THRESHOLD = 100;
 
-    Telemetry telemetry;
+    private int parkingLocation = 0;
+    private final Mat image = new Mat();
 
-    private int parkingLocation;
-    private Mat image;
-
-    private Scalar firstLowHSV;
-    private Scalar firstHighHSV;
-    private Scalar secondLowHSV;
-    private Scalar secondHighHSV;
-    private Scalar thirdLowRGB;
-    private Scalar thirdHighRGB;
+    private Scalar firstLowHSV = new Scalar(0, 83, 190); // lower bound HSV for yellow
+    private Scalar firstHighHSV = new Scalar(77, 205, 255); // higher bound HSV for yellow
+    private Scalar secondLowHSV = new Scalar(44, 21, 96); // lower bound HSV for green
+    private Scalar secondHighHSV = new Scalar(83, 94, 255); // higher bound HSV for green
+    private Scalar thirdLowRGB = new Scalar(0, 43, 112);
+    private Scalar thirdHighRGB = new Scalar(139, 126, 255);
 
     private double roiAverage;
 
@@ -30,21 +26,6 @@ public class SignalSleevePipeline extends OpenCvPipeline {
             new Point(900, 200),
             new Point(1200, 700)
     );
-
-    public SignalSleevePipeline(Telemetry telemetry) {
-        this.telemetry = telemetry;
-        this.parkingLocation = 0;
-        this.image = new Mat();
-
-        this.firstLowHSV = new Scalar(0, 83, 190); // lower bound HSV for yellow
-        this.firstHighHSV = new Scalar(77, 205, 255); // higher bound HSV for yellow
-
-        this.secondLowHSV = new Scalar(44, 21, 96); // lower bound HSV for green
-        this.secondHighHSV = new Scalar(83, 94, 255); // higher bound HSV for green
-
-        this.thirdLowRGB = new Scalar(0, 43, 112);
-        this.thirdHighRGB = new Scalar(139, 126, 255);
-    }
 
     @Override
     public Mat processFrame(Mat frame) {
@@ -100,6 +81,7 @@ public class SignalSleevePipeline extends OpenCvPipeline {
         return false;
     }
 
+    @Override
     public int getParkingLocation() {
         return this.parkingLocation;
     }

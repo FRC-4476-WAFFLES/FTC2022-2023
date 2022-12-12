@@ -8,10 +8,22 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public class IntakeSubsystem extends SubsystemBase {
-    private final MotorEx intakeMotor;
+    private static final IntakeSubsystem instance = new IntakeSubsystem();
+
+    private MotorEx intakeMotor;
     private Modes intakeMode;
 
-    public IntakeSubsystem(HardwareMap hardwareMap, Telemetry telemetry) {
+    private Telemetry telemetry;
+
+    private IntakeSubsystem() {}
+
+    public static synchronized IntakeSubsystem getInstance() {
+        return instance;
+    }
+
+    public void init(HardwareMap hardwareMap, Telemetry telemetry) {
+        this.telemetry = telemetry;
+
         this.intakeMotor = new MotorEx(hardwareMap, "Intake");
         this.intakeMotor.setRunMode(Motor.RunMode.RawPower);
         this.intakeMode = Modes.OFF;

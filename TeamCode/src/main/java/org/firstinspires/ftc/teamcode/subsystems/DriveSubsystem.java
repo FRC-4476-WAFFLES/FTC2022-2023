@@ -3,8 +3,6 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import androidx.annotation.NonNull;
 
 import com.arcrobotics.ftclib.command.SubsystemBase;
-import com.arcrobotics.ftclib.controller.PIDController;
-import com.arcrobotics.ftclib.controller.wpilibcontroller.ProfiledPIDController;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.geometry.Translation2d;
@@ -16,67 +14,46 @@ import com.arcrobotics.ftclib.kinematics.wpilibkinematics.ChassisSpeeds;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.MecanumDriveKinematics;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.MecanumDriveOdometry;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.MecanumDriveWheelSpeeds;
-import com.arcrobotics.ftclib.trajectory.TrapezoidProfile;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-
-import lib.autoNavigation.controller.HolonomicDriveController;
-import lib.autoNavigation.trajectory.OmniTrajectory;
+import static org.firstinspires.ftc.teamcode.Constants.DriveConstants.*;
 
 public class DriveSubsystem extends SubsystemBase {
+    private static final DriveSubsystem instance = new DriveSubsystem();
+
     private final ElapsedTime runtime = new ElapsedTime();
     private final ElapsedTime pathTime = new ElapsedTime();
 
     // Create the variables to hold the four motor objects
-    private final MotorEx frontLeftMotor;
-    private final MotorEx frontRightMotor;
-    private final MotorEx backLeftMotor;
-    private final MotorEx backRightMotor;
+    private MotorEx frontLeftMotor;
+    private MotorEx frontRightMotor;
+    private MotorEx backLeftMotor;
+    private MotorEx backRightMotor;
 
-    private final GyroEx gyro;
+    private GyroEx gyro;
 
-    private final double WHEEL_DIAMETER = 101.6; // Wheel diameter in millimeters
-
-    private final double COUNTS_TO_MM = (WHEEL_DIAMETER * Math.PI) / Motor.GoBILDA.RPM_312.getCPR();
-    private final double METERS_TO_COUNTS = (1 / COUNTS_TO_MM) * 1000; // Convert meters per second to ticks per second
-    private final double MAX_SPEED_M_PER_S = Motor.GoBILDA.RPM_312.getAchievableMaxTicksPerSecond() * COUNTS_TO_MM;
-
-    private final double MAX_ACCEL_M_PER_S_SQ = 1.0; //TODO: Set this number to be accurate;
-
-    private final MecanumDriveKinematics kinematics;
+    private MecanumDriveKinematics kinematics;
     private Rotation2d gyroAngle;
-    private final MecanumDriveOdometry odometry;
+    private MecanumDriveOdometry odometry;
 
-    private final Telemetry telemetry;
+    private Telemetry telemetry;
 
-    private final HolonomicDriveController driveController;
+    private DriveSubsystem() {}
 
-    private OmniTrajectory trajectory;
+    public static synchronized DriveSubsystem getInstance() {
+        return instance;
+    }
 
-    public DriveSubsystem(HardwareMap hardwareMap, Telemetry telemetry) {
-        this.frontLeftMotor = new MotorEx(hardwareMap, "FL", Motor.GoBILDA.RPM_312);
-        this.frontRightMotor = new MotorEx(hardwareMap, "FR", Motor.GoBILDA.RPM_312);
-        this.backLeftMotor = new MotorEx(hardwareMap, "BL", Motor.GoBILDA.RPM_312);
-        this.backRightMotor = new MotorEx(hardwareMap, "BR", Motor.GoBILDA.RPM_312);
+    public void init(HardwareMap hardwareMap, Telemetry telemetry) {
+        this.frontLeftMotor = new MotorEx(hardwareMap, FRONT_LEFT, Motor.GoBILDA.RPM_312);
+        this.frontRightMotor = new MotorEx(hardwareMap, FRONT_RIGHT, Motor.GoBILDA.RPM_312);
+        this.backLeftMotor = new MotorEx(hardwareMap, BACK_LEFT, Motor.GoBILDA.RPM_312);
+        this.backRightMotor = new MotorEx(hardwareMap, BACK_RIGHT, Motor.GoBILDA.RPM_312);
         this.gyro = new RevIMU(hardwareMap);
 
         this.telemetry = telemetry;
-
-        //TODO: Set and tune PID coefficients to be good
-        PIDController xController = new PIDController(4.0, 0.0, 0.0);
-        PIDController yController = new PIDController(4.0, 0.0, 0.0);
-        ProfiledPIDController thetaController = new ProfiledPIDController(4.0, 0.1, 0.0,
-                new TrapezoidProfile.Constraints(
-                        MAX_SPEED_M_PER_S,
-                        MAX_ACCEL_M_PER_S_SQ));
-
-        this.driveController = new HolonomicDriveController(
-                xController,
-                yController,
-                thetaController
-        );
 
         // Set motors to run at a specified velocity
         frontLeftMotor.setRunMode(Motor.RunMode.VelocityControl);
@@ -144,37 +121,10 @@ public class DriveSubsystem extends SubsystemBase {
         setMotors(wheelSpeeds);
     }
 
-    public void driveAuto() {
-        if (trajectory != null) {
-            double curTime = pathTime.time();
-            OmniTrajectory.State desiredState = trajectory.sample(curTime);
-
-            telemetry.addData("Desired Pos", desiredState.poseMeters);
-
-            ChassisSpeeds targetChassisSpeeds = driveController.calculate(
-                    getOdometryLocation(),
-                    desiredState,
-                    desiredState.poseMeters.getRotation()
-            );
-
-            MecanumDriveWheelSpeeds wheelSpeeds = kinematics.toWheelSpeeds(targetChassisSpeeds);
-            wheelSpeeds.normalize(MAX_SPEED_M_PER_S);
-
-            setMotors(wheelSpeeds);
-        } else {
-            setMotors(new MecanumDriveWheelSpeeds());
-        }
-    }
-
-    public boolean isPathFinished() {
-        if (trajectory == null) {
-            return true;
-        }
-        Pose2d endPose = trajectory.getStates().get(trajectory.getStates().size() - 1).poseMeters;
-        telemetry.addData("End Pose", endPose);
-        return Math.abs(odometry.getPoseMeters().getX() - endPose.getX()) < 0.1
-                && Math.abs(odometry.getPoseMeters().getY() - endPose.getY()) < 0.1
-                && Math.abs(gyroAngle.getDegrees() - endPose.getRotation().getDegrees()) < 5.0;
+    public void setChassisSpeeds(ChassisSpeeds chassisSpeeds) {
+        MecanumDriveWheelSpeeds wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
+        wheelSpeeds.normalize(MAX_SPEED_M_PER_S);
+        setMotors(wheelSpeeds);
     }
 
     public Pose2d getOdometryLocation() {
@@ -185,10 +135,10 @@ public class DriveSubsystem extends SubsystemBase {
         odometry.updateWithTime(runtime.time(),
                 gyroAngle,
                 new MecanumDriveWheelSpeeds(
-                        frontLeftMotor.getVelocity() / METERS_TO_COUNTS,
-                        frontRightMotor.getVelocity() / METERS_TO_COUNTS,
-                        backLeftMotor.getVelocity() / METERS_TO_COUNTS,
-                        backRightMotor.getVelocity() / METERS_TO_COUNTS));
+                        frontLeftMotor.getVelocity() / METERS_TO_TICKS,
+                        frontRightMotor.getVelocity() / METERS_TO_TICKS,
+                        backLeftMotor.getVelocity() / METERS_TO_TICKS,
+                        backRightMotor.getVelocity() / METERS_TO_TICKS));
     }
 
     private void updateGyro() {
@@ -197,10 +147,10 @@ public class DriveSubsystem extends SubsystemBase {
 
     private void setMotors(@NonNull MecanumDriveWheelSpeeds wheelSpeeds) {
         //telemetry.addData("commanded speeds", wheelSpeeds);
-        frontLeftMotor.setVelocity(wheelSpeeds.frontLeftMetersPerSecond * METERS_TO_COUNTS);
-        frontRightMotor.setVelocity(wheelSpeeds.frontRightMetersPerSecond * METERS_TO_COUNTS);
-        backLeftMotor.setVelocity(wheelSpeeds.rearLeftMetersPerSecond * METERS_TO_COUNTS);
-        backRightMotor.setVelocity(wheelSpeeds.rearRightMetersPerSecond * METERS_TO_COUNTS);
+        frontLeftMotor.setVelocity(wheelSpeeds.frontLeftMetersPerSecond * METERS_TO_TICKS);
+        frontRightMotor.setVelocity(wheelSpeeds.frontRightMetersPerSecond * METERS_TO_TICKS);
+        backLeftMotor.setVelocity(wheelSpeeds.rearLeftMetersPerSecond * METERS_TO_TICKS);
+        backRightMotor.setVelocity(wheelSpeeds.rearRightMetersPerSecond * METERS_TO_TICKS);
     }
 
     /** Stop all motors from running. */
@@ -217,15 +167,6 @@ public class DriveSubsystem extends SubsystemBase {
 
     public void resetOdometry(Pose2d robotPose) {
         odometry.resetPosition(robotPose, gyroAngle);
-    }
-
-    public OmniTrajectory getTrajectory() {
-        return trajectory;
-    }
-
-    public void setTrajectory(OmniTrajectory trajectory) {
-        this.trajectory = trajectory;
-        this.pathTime.reset();
     }
 
     public void disableMotors() {

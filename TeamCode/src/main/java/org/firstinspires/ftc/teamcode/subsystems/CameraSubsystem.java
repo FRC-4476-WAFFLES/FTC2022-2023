@@ -10,12 +10,23 @@ import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 
 public class CameraSubsystem extends SubsystemBase {
+    private static final CameraSubsystem instance = new CameraSubsystem();
+
     OpenCvCamera webcam;
     int cameraMonitorViewId;
 
     AlternativePipeline pipeline;
 
-    public CameraSubsystem(HardwareMap hardwareMap, Telemetry telemetry) {
+    private Telemetry telemetry;
+
+    private CameraSubsystem() {}
+
+    public static CameraSubsystem getInstance() {
+        return instance;
+    }
+
+    public void init(HardwareMap hardwareMap, Telemetry telemetry) {
+        this.telemetry = telemetry;
         // Get webcam object from hardwareMap
         this.cameraMonitorViewId = hardwareMap.appContext
                 .getResources().getIdentifier(
@@ -29,7 +40,7 @@ public class CameraSubsystem extends SubsystemBase {
                 ), this.cameraMonitorViewId);
 
         // Set pipeline to Freight Detector
-        this.pipeline = new AlternativePipeline(telemetry);
+        this.pipeline = new AlternativePipeline();
         this.webcam.setPipeline(pipeline);
 
         // Activate camera
