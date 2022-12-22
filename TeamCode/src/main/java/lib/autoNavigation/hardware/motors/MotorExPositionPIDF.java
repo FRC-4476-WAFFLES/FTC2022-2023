@@ -1,4 +1,4 @@
-package lib.hardware.motors;
+package lib.autoNavigation.hardware.motors;
 
 import androidx.annotation.NonNull;
 

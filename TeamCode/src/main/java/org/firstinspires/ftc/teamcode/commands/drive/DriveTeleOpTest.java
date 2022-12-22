@@ -1,27 +1,28 @@
 package org.firstinspires.ftc.teamcode.commands.drive;
 
-import static org.firstinspires.ftc.teamcode.Constants.DriveConstants.MAX_ROT_SPEED_RAD_PER_SEC;
-import static org.firstinspires.ftc.teamcode.Constants.DriveConstants.MAX_SPEED_M_PER_S;
-
 import com.arcrobotics.ftclib.command.CommandBase;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 
 import java.util.function.DoubleSupplier;
 
 import lib.autoNavigation.math.MathUtil;
 
-public class DriveTeleOp extends CommandBase {
+public class DriveTeleOpTest extends CommandBase {
     private final DoubleSupplier forwardSupplier, rightSupplier, rotationSupplier;
+    private final Telemetry telemetry;
 
-    public DriveTeleOp(
+    public DriveTeleOpTest(
             DoubleSupplier forwardSupplier,
             DoubleSupplier rightSupplier,
-            DoubleSupplier rotationSupplier
+            DoubleSupplier rotationSupplier,
+            Telemetry telemetry
     ) {
         this.forwardSupplier = forwardSupplier;
         this.rightSupplier = rightSupplier;
         this.rotationSupplier = rotationSupplier;
+        this.telemetry = telemetry;
         addRequirements(DriveSubsystem.getInstance());
     }
 

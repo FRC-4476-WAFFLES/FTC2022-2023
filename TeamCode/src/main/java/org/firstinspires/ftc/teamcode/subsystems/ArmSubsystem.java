@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import lib.autoNavigation.math.MathUtil;
-import lib.hardware.motors.MotorExPositionPIDF;
+import lib.autoNavigation.hardware.motors.MotorExPositionPIDF;
 
 public class ArmSubsystem extends SubsystemBase {
     private static final ArmSubsystem instance = new ArmSubsystem();

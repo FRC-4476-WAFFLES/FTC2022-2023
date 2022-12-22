@@ -24,7 +24,6 @@ public class DriveSubsystem extends SubsystemBase {
     private static final DriveSubsystem instance = new DriveSubsystem();
 
     private final ElapsedTime runtime = new ElapsedTime();
-    private final ElapsedTime pathTime = new ElapsedTime();
 
     // Create the variables to hold the four motor objects
     private MotorEx frontLeftMotor;
@@ -34,11 +33,13 @@ public class DriveSubsystem extends SubsystemBase {
 
     private GyroEx gyro;
 
-    private MecanumDriveKinematics kinematics;
+    public MecanumDriveKinematics kinematics;
     private Rotation2d gyroAngle;
     private MecanumDriveOdometry odometry;
 
     private Telemetry telemetry;
+
+    private MecanumDriveWheelSpeeds wheelSpeeds = new MecanumDriveWheelSpeeds();
 
     private DriveSubsystem() {}
 
@@ -46,7 +47,7 @@ public class DriveSubsystem extends SubsystemBase {
         return instance;
     }
 
-    public void init(HardwareMap hardwareMap, Telemetry telemetry) {
+    public synchronized void init(HardwareMap hardwareMap, Telemetry telemetry) {
         this.frontLeftMotor = new MotorEx(hardwareMap, FRONT_LEFT, Motor.GoBILDA.RPM_312);
         this.frontRightMotor = new MotorEx(hardwareMap, FRONT_RIGHT, Motor.GoBILDA.RPM_312);
         this.backLeftMotor = new MotorEx(hardwareMap, BACK_LEFT, Motor.GoBILDA.RPM_312);
@@ -65,11 +66,16 @@ public class DriveSubsystem extends SubsystemBase {
         frontLeftMotor.setInverted(true);
         backLeftMotor.setInverted(true);
 
-        // Set the motors to brake on stop
+        /*// Set the motors to brake on stop
         frontLeftMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         frontRightMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         backLeftMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
-        backRightMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
+        backRightMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);*/
+
+        frontLeftMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.FLOAT);
+        frontRightMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.FLOAT);
+        backLeftMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.FLOAT);
+        backRightMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.FLOAT);
 
         // Reset the motor encoders
         frontLeftMotor.resetEncoder();
@@ -103,8 +109,21 @@ public class DriveSubsystem extends SubsystemBase {
     public void periodic() {
         updateGyro();
         updateOdometry();
+        //setMotors(wheelSpeeds);
 
-        telemetry.addData("Current Pos", odometry.getPoseMeters());
+        //telemetry.addData("Current Pos", odometry.getPoseMeters());
+        telemetry
+                .addData("FL app pow", frontLeftMotor.get())
+                .addData("FR app pow", frontRightMotor.get())
+                .addData("BL app pow", backLeftMotor.get())
+                .addData("BR app pow", backRightMotor.get());
+
+        telemetry.addData("target wheel speeds", wheelSpeeds);
+        telemetry.addData("current wheel speeds", new MecanumDriveWheelSpeeds(
+                frontLeftMotor.getVelocity() / METERS_TO_TICKS,
+                frontRightMotor.getVelocity() / METERS_TO_TICKS,
+                backLeftMotor.getVelocity() / METERS_TO_TICKS,
+                backRightMotor.getVelocity() / METERS_TO_TICKS));
     }
 
     public void driveTeleOp(double forward, double right, double rotation, boolean fieldCentric) {
@@ -116,15 +135,16 @@ public class DriveSubsystem extends SubsystemBase {
             chassisSpeeds = new ChassisSpeeds(forward, right, rotation);
         }
 
-        MecanumDriveWheelSpeeds wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
+        wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
         wheelSpeeds.normalize(MAX_SPEED_M_PER_S);
         setMotors(wheelSpeeds);
+        //telemetry.addData("Target chassis speeds", chassisSpeeds).addData("target wheel speeds", wheelSpeeds);
     }
 
     public void setChassisSpeeds(ChassisSpeeds chassisSpeeds) {
-        MecanumDriveWheelSpeeds wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
+        wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
         wheelSpeeds.normalize(MAX_SPEED_M_PER_S);
-        setMotors(wheelSpeeds);
+        //setMotors(wheelSpeeds);
     }
 
     public Pose2d getOdometryLocation() {
@@ -151,6 +171,18 @@ public class DriveSubsystem extends SubsystemBase {
         frontRightMotor.setVelocity(wheelSpeeds.frontRightMetersPerSecond * METERS_TO_TICKS);
         backLeftMotor.setVelocity(wheelSpeeds.rearLeftMetersPerSecond * METERS_TO_TICKS);
         backRightMotor.setVelocity(wheelSpeeds.rearRightMetersPerSecond * METERS_TO_TICKS);
+    }
+
+    public void setPowers(double fl, double fr, double bl, double br) {
+        telemetry
+                .addData("fl", fl)
+                .addData("fr", fr)
+                .addData("bl", bl)
+                .addData("br", br);
+        frontLeftMotor.set(fl);
+        frontRightMotor.set(fr);
+        backLeftMotor.set(bl);
+        backRightMotor.set(br);
     }
 
     /** Stop all motors from running. */

@@ -2,20 +2,31 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.teamcode.pipelines.AlternativePipeline;
+import org.firstinspires.ftc.teamcode.pipelines.ParkingLocationPipeline;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 
+import lib.autoNavigation.math.MathUtil;
+
 public class CameraSubsystem extends SubsystemBase {
     private static final CameraSubsystem instance = new CameraSubsystem();
+
+    private final ElapsedTime timer = new ElapsedTime();
+
+    private final int[] parkingLocations = new int[10];
+
+    private boolean isReady = false;
 
     OpenCvCamera webcam;
     int cameraMonitorViewId;
 
-    AlternativePipeline pipeline;
+    ParkingLocationPipeline pipeline;
 
     private Telemetry telemetry;
 
@@ -50,6 +61,7 @@ public class CameraSubsystem extends SubsystemBase {
                 // Start streaming from the camera
                 webcam.startStreaming(1280, 720, OpenCvCameraRotation.UPRIGHT);
                 telemetry.addLine("Opened webcam.");
+                isReady = true;
             }
 
             @Override
@@ -61,11 +73,28 @@ public class CameraSubsystem extends SubsystemBase {
         });
     }
 
+    @Override
+    public void periodic() {
+        if (isReady && timer.time() > 0.1) {
+            System.arraycopy(parkingLocations, 0, parkingLocations, 1, parkingLocations.length - 2);
+            parkingLocations[0] = getParkingLocation();
+            timer.reset();
+        }
+    }
+
     public int getParkingLocation() {
         return this.pipeline.getParkingLocation();
     }
 
+    public int getFilteredParkingLocation() {
+        return MathUtil.mode(parkingLocations);
+    }
+
     public void stop() {
         this.webcam.stopStreaming();
+    }
+
+    public boolean isReady() {
+        return isReady;
     }
 }
