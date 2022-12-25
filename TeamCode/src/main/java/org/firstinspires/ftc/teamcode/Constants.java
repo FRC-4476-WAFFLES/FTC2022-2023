@@ -13,7 +13,8 @@ public final class Constants {
 
         public static final double COUNTS_TO_MM = (WHEEL_DIAMETER * Math.PI) / Motor.GoBILDA.RPM_312.getCPR();
         public static final double METERS_TO_TICKS = (1 / COUNTS_TO_MM) * 1000; // Convert meters per second to ticks per second
-        public static final double MAX_SPEED_M_PER_S = Motor.GoBILDA.RPM_312.getAchievableMaxTicksPerSecond() * COUNTS_TO_MM;
+        //public static final double MAX_SPEED_M_PER_S = Motor.GoBILDA.RPM_312.getAchievableMaxTicksPerSecond() * COUNTS_TO_MM;
+        public static final double MAX_SPEED_M_PER_S = 1.5;
 
         public static final double MAX_ACCEL_M_PER_S_SQ = 2.0;
 

@@ -7,8 +7,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+import lib.autoNavigation.hardware.motors.MotorExPIDF;
 import lib.autoNavigation.math.MathUtil;
-import lib.autoNavigation.hardware.motors.MotorExPositionPIDF;
 
 public class ArmSubsystem extends SubsystemBase {
     private static final ArmSubsystem instance = new ArmSubsystem();
@@ -19,7 +19,7 @@ public class ArmSubsystem extends SubsystemBase {
 
     private Telemetry telemetry;
 
-    private MotorExPositionPIDF armMotor;
+    private MotorExPIDF armMotor;
 
     private final double TICKS_PER_DEGREE = Motor.GoBILDA.RPM_435.getCPR() * 5.0 / 360.0;
     private final int POS_HORIZONTAL = 280;
@@ -36,14 +36,14 @@ public class ArmSubsystem extends SubsystemBase {
     public void init(HardwareMap hardwareMap, Telemetry telemetry) {
         this.telemetry = telemetry;
 
-        armMotor = new MotorExPositionPIDF(hardwareMap, "Arm", Motor.GoBILDA.RPM_435);
+        armMotor = new MotorExPIDF(hardwareMap, "Arm", Motor.GoBILDA.RPM_435);
 
         armMotor.setRunMode(Motor.RunMode.PositionControl);
         armMotor.resetEncoder();
         armMotor.setInverted(true);
         armMotor.setPositionTolerance(15);
         armMotor.setPID(0.005, 0.0, 0.00015); // TODO: Test and set values for these coefficients
-        armMotor.setF(0.0);
+        armMotor.setFeedforward(0.0, 0.0);
         armMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.FLOAT);
 
         targetPosition = 0;
@@ -59,7 +59,7 @@ public class ArmSubsystem extends SubsystemBase {
         double radians = Math.toRadians(degrees);
         double cosineScalar = Math.cos(radians);
 
-        armMotor.setF(maxGravityFF * cosineScalar);
+        armMotor.setFeedforward(maxGravityFF * cosineScalar, 0.0);
 
         armMotor.setTargetPosition(this.targetPosition);
 

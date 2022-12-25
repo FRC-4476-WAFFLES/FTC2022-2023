@@ -9,7 +9,6 @@ import com.arcrobotics.ftclib.geometry.Translation2d;
 import com.arcrobotics.ftclib.hardware.GyroEx;
 import com.arcrobotics.ftclib.hardware.RevIMU;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
-import com.arcrobotics.ftclib.hardware.motors.MotorEx;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.ChassisSpeeds;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.MecanumDriveKinematics;
 import com.arcrobotics.ftclib.kinematics.wpilibkinematics.MecanumDriveOdometry;
@@ -20,16 +19,18 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import static org.firstinspires.ftc.teamcode.Constants.DriveConstants.*;
 
+import lib.autoNavigation.hardware.motors.MotorExPIDF;
+
 public class DriveSubsystem extends SubsystemBase {
     private static final DriveSubsystem instance = new DriveSubsystem();
 
     private final ElapsedTime runtime = new ElapsedTime();
 
     // Create the variables to hold the four motor objects
-    private MotorEx frontLeftMotor;
-    private MotorEx frontRightMotor;
-    private MotorEx backLeftMotor;
-    private MotorEx backRightMotor;
+    private MotorExPIDF frontLeftMotor;
+    private MotorExPIDF frontRightMotor;
+    private MotorExPIDF backLeftMotor;
+    private MotorExPIDF backRightMotor;
 
     private GyroEx gyro;
 
@@ -48,34 +49,23 @@ public class DriveSubsystem extends SubsystemBase {
     }
 
     public synchronized void init(HardwareMap hardwareMap, Telemetry telemetry) {
-        this.frontLeftMotor = new MotorEx(hardwareMap, FRONT_LEFT, Motor.GoBILDA.RPM_312);
-        this.frontRightMotor = new MotorEx(hardwareMap, FRONT_RIGHT, Motor.GoBILDA.RPM_312);
-        this.backLeftMotor = new MotorEx(hardwareMap, BACK_LEFT, Motor.GoBILDA.RPM_312);
-        this.backRightMotor = new MotorEx(hardwareMap, BACK_RIGHT, Motor.GoBILDA.RPM_312);
+        this.frontLeftMotor = new MotorExPIDF(hardwareMap, FRONT_LEFT, Motor.GoBILDA.RPM_312);
+        this.frontRightMotor = new MotorExPIDF(hardwareMap, FRONT_RIGHT, Motor.GoBILDA.RPM_312);
+        this.backLeftMotor = new MotorExPIDF(hardwareMap, BACK_LEFT, Motor.GoBILDA.RPM_312);
+        this.backRightMotor = new MotorExPIDF(hardwareMap, BACK_RIGHT, Motor.GoBILDA.RPM_312);
         this.gyro = new RevIMU(hardwareMap);
 
         this.telemetry = telemetry;
-
-        // Set motors to run at a specified velocity
-        frontLeftMotor.setRunMode(Motor.RunMode.VelocityControl);
-        frontRightMotor.setRunMode(Motor.RunMode.VelocityControl);
-        backLeftMotor.setRunMode(Motor.RunMode.VelocityControl);
-        backRightMotor.setRunMode(Motor.RunMode.VelocityControl);
 
         // Invert the direction of the left motors
         frontLeftMotor.setInverted(true);
         backLeftMotor.setInverted(true);
 
-        /*// Set the motors to brake on stop
+        // Set the motors to brake on stop
         frontLeftMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         frontRightMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         backLeftMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
-        backRightMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);*/
-
-        frontLeftMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.FLOAT);
-        frontRightMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.FLOAT);
-        backLeftMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.FLOAT);
-        backRightMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.FLOAT);
+        backRightMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
 
         // Reset the motor encoders
         frontLeftMotor.resetEncoder();
@@ -88,6 +78,24 @@ public class DriveSubsystem extends SubsystemBase {
         frontRightMotor.setDistancePerPulse(COUNTS_TO_MM);
         backLeftMotor.setDistancePerPulse(COUNTS_TO_MM);
         backRightMotor.setDistancePerPulse(COUNTS_TO_MM);
+
+        // Set motors to run at a specified velocity
+        frontLeftMotor.setRunMode(Motor.RunMode.VelocityControl);
+        frontRightMotor.setRunMode(Motor.RunMode.VelocityControl);
+        backLeftMotor.setRunMode(Motor.RunMode.VelocityControl);
+        backRightMotor.setRunMode(Motor.RunMode.VelocityControl);
+
+        double kp = 0.1; // TODO: make these values good
+        double kv = 1.1;
+
+        frontLeftMotor.setPID(kp, 0, 0);
+        frontLeftMotor.setFeedforward(0, kv);
+        frontRightMotor.setPID(kp, 0, 0);
+        frontRightMotor.setFeedforward(0, kv);
+        backLeftMotor.setPID(kp, 0, 0);
+        backLeftMotor.setFeedforward(0, kv);
+        backRightMotor.setPID(kp, 0, 0);
+        backRightMotor.setFeedforward(0, kv);
 
         gyro.init();
 
@@ -109,21 +117,6 @@ public class DriveSubsystem extends SubsystemBase {
     public void periodic() {
         updateGyro();
         updateOdometry();
-        //setMotors(wheelSpeeds);
-
-        //telemetry.addData("Current Pos", odometry.getPoseMeters());
-        telemetry
-                .addData("FL app pow", frontLeftMotor.get())
-                .addData("FR app pow", frontRightMotor.get())
-                .addData("BL app pow", backLeftMotor.get())
-                .addData("BR app pow", backRightMotor.get());
-
-        telemetry.addData("target wheel speeds", wheelSpeeds);
-        telemetry.addData("current wheel speeds", new MecanumDriveWheelSpeeds(
-                frontLeftMotor.getVelocity() / METERS_TO_TICKS,
-                frontRightMotor.getVelocity() / METERS_TO_TICKS,
-                backLeftMotor.getVelocity() / METERS_TO_TICKS,
-                backRightMotor.getVelocity() / METERS_TO_TICKS));
     }
 
     public void driveTeleOp(double forward, double right, double rotation, boolean fieldCentric) {
@@ -138,7 +131,6 @@ public class DriveSubsystem extends SubsystemBase {
         wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
         wheelSpeeds.normalize(MAX_SPEED_M_PER_S);
         setMotors(wheelSpeeds);
-        //telemetry.addData("Target chassis speeds", chassisSpeeds).addData("target wheel speeds", wheelSpeeds);
     }
 
     public void setChassisSpeeds(ChassisSpeeds chassisSpeeds) {
@@ -152,7 +144,8 @@ public class DriveSubsystem extends SubsystemBase {
     }
 
     private void updateOdometry() {
-        odometry.updateWithTime(runtime.time(),
+        odometry.updateWithTime(
+                runtime.time(),
                 gyroAngle,
                 new MecanumDriveWheelSpeeds(
                         frontLeftMotor.getVelocity() / METERS_TO_TICKS,
@@ -171,18 +164,6 @@ public class DriveSubsystem extends SubsystemBase {
         frontRightMotor.setVelocity(wheelSpeeds.frontRightMetersPerSecond * METERS_TO_TICKS);
         backLeftMotor.setVelocity(wheelSpeeds.rearLeftMetersPerSecond * METERS_TO_TICKS);
         backRightMotor.setVelocity(wheelSpeeds.rearRightMetersPerSecond * METERS_TO_TICKS);
-    }
-
-    public void setPowers(double fl, double fr, double bl, double br) {
-        telemetry
-                .addData("fl", fl)
-                .addData("fr", fr)
-                .addData("bl", bl)
-                .addData("br", br);
-        frontLeftMotor.set(fl);
-        frontRightMotor.set(fr);
-        backLeftMotor.set(bl);
-        backRightMotor.set(br);
     }
 
     /** Stop all motors from running. */
